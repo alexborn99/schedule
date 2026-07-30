@@ -153,20 +153,21 @@
             anchorDate: "2026-07-30",
             employees: [
                 { id: "emp_1", name: "Я", color: "#3b82f6", sickStart: null },
-                { id: "emp_2", name: "Руслан", color: "#10b981", sickStart: null }
+                { id: "emp_2", name: "Руслан", color: "#10b981", sickStart: null },
+                { id: "emp_3", name: "Олег", color: "#f59e0b", sickStart: null }
             ],
             overrides: {}
         };
 
         let appState = JSON.parse(localStorage.getItem("work_schedule_data")) || DEFAULT_STATE;
-        
-        // Перевірка та автоматичне оновлення імен для поточної сесії
-        if (!appState.employees.some(e => e.name === "Руслан")) {
+
+        // Автоматична синхронізація структури для першої сесії
+        if (appState.employees.length < 3) {
             appState = DEFAULT_STATE;
             localStorage.setItem("work_schedule_data", JSON.stringify(appState));
         }
 
-        let currentDate = new Date(2026, 6, 30); // Поточна дата: 30 липня 2026
+        let currentDate = new Date(2026, 6, 30);
         let selectedDateStr = null;
 
         function saveState() {
@@ -188,28 +189,29 @@
             let result = {};
 
             if (dayOfWeek === 0) {
-                // Неділя: Я - Вихідний (ВИХ), черговий змінний
+                // Неділя: 1 працює з 08:00, 1 працює з 13:00, лише 1 вихідний (ВИХ)
                 const weekIndex = Math.floor(diffDays / 7);
-                const empIndex8 = (Math.abs(weekIndex) + 1) % n;
+                const empIndex8 = Math.abs(weekIndex) % n;
+                const empIndex13 = (Math.abs(weekIndex) + 1) % n;
 
                 activeEmps.forEach((emp, index) => {
-                    if (emp.name === "Я") {
-                        result[emp.id] = "ВИХ";
-                    } else if (index === empIndex8) {
+                    if (index === empIndex8) {
                         result[emp.id] = "08:00";
+                    } else if (index === empIndex13) {
+                        result[emp.id] = "13:00";
                     } else {
                         result[emp.id] = "ВИХ";
                     }
                 });
             } else {
-                // Регулярний цикл смен
+                // Регулярний будній цикл 08:00 / 09:00
                 const cycleIndex = ((diffDays % n) + n) % n;
                 activeEmps.forEach((emp, index) => {
                     result[emp.id] = (index === cycleIndex) ? "08:00" : "09:00";
                 });
             }
 
-            // Облік активного лікарняного
+            // Облік лікарняного
             activeEmps.forEach(emp => {
                 if (emp.sickStart && dateStr >= emp.sickStart) {
                     result[emp.id] = "ЛІКАР";
@@ -247,6 +249,16 @@
                     ${emp.sickStart ? '<span class="text-[10px] text-rose-500 font-bold ml-1">(Лікарняний)</span>' : ''}
                 `;
                 container.appendChild(badge);
+            });
+        }
+
+        // Пріоритет сортування в ячейці: Черговий 08:00 ЗАВЖДИ Перший
+        function sortEmployeesByDuty(shifts) {
+            const priority = { "08:00": 1, "13:00": 2, "09:00": 3, "ВИХ": 4, "ЛІКАР": 5, "—": 6 };
+            return [...appState.employees].sort((a, b) => {
+                const shiftA = shifts[a.id] || "—";
+                const shiftB = shifts[b.id] || "—";
+                return (priority[shiftA] || 99) - (priority[shiftB] || 99);
             });
         }
 
@@ -288,7 +300,6 @@
                 dayCell.className = `p-2 min-h-[110px] sm:min-h-[120px] transition hover:bg-slate-50 cursor-pointer flex flex-col justify-between ${isToday ? 'bg-indigo-50/40 font-semibold border-2 border-indigo-400' : ''}`;
                 dayCell.onclick = () => openDayModal(dateKey, dayObj);
 
-                // ВЕЛИКИЙ ТА ЧІТКИЙ ШРИФТ ДАТИ
                 const dateHeader = document.createElement("div");
                 dateHeader.className = "flex justify-between items-center mb-2 border-b border-slate-100 pb-1";
                 dateHeader.innerHTML = `
@@ -300,14 +311,7 @@
                 const shiftsContainer = document.createElement("div");
                 shiftsContainer.className = "space-y-1 flex-1";
 
-                // СОРТУВАННЯ: Дежурний (зміна 08:00) завжди першим у ячейці
-                const sortedEmployees = [...appState.employees].sort((a, b) => {
-                    const shiftA = shifts[a.id] || "—";
-                    const shiftB = shifts[b.id] || "—";
-                    if (shiftA === "08:00" && shiftB !== "08:00") return -1;
-                    if (shiftB === "08:00" && shiftA !== "08:00") return 1;
-                    return 0;
-                });
+                const sortedEmployees = sortEmployeesByDuty(shifts);
 
                 sortedEmployees.forEach(emp => {
                     const shiftTime = shifts[emp.id] || "—";
@@ -332,7 +336,7 @@
                 calendarGrid.appendChild(dayCell);
             }
 
-            // РАСПИСАНИЕ НА ДНИ СЛЕДУЮЩЕГО МЕСЯЦА ДО БЛИЖАЙШЕГО ВОСКРЕСЕНЬЯ ВКЛЮЧИТЕЛЬНО
+            // Дні наступного місяця до найближчої неділі включно
             const totalCells = startDay + totalDays;
             const nextPadding = (7 - (totalCells % 7)) % 7;
             
@@ -356,14 +360,7 @@
                 const shiftsContainer = document.createElement("div");
                 shiftsContainer.className = "space-y-1 flex-1";
 
-                // СОРТУВАННЯ: Дежурний (08:00) першим
-                const sortedEmployees = [...appState.employees].sort((a, b) => {
-                    const shiftA = shifts[a.id] || "—";
-                    const shiftB = shifts[b.id] || "—";
-                    if (shiftA === "08:00" && shiftB !== "08:00") return -1;
-                    if (shiftB === "08:00" && shiftA !== "08:00") return 1;
-                    return 0;
-                });
+                const sortedEmployees = sortEmployeesByDuty(shifts);
 
                 sortedEmployees.forEach(emp => {
                     const shiftTime = shifts[emp.id] || "—";
