@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Графік Змін Відділу</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -19,9 +17,7 @@
     <!-- Header -->
     <header class="sticky top-0 z-30 glass border-b border-slate-200/80 px-4 py-3 sm:px-8 flex justify-between items-center shadow-sm">
         <div class="flex items-center space-x-3">
-            <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-indigo-200">
-                📅
-            </div>
+            <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-indigo-200">📅</div>
             <div>
                 <h1 class="text-lg font-semibold text-slate-900 leading-tight">Графік Змін</h1>
                 <p class="text-xs text-slate-500">Автоматичний розрахунок & Моніторинг</p>
@@ -39,7 +35,6 @@
 
     <!-- Main Content -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        <!-- Controls & Navigation -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div class="flex items-center space-x-3">
                 <h2 id="current-month-label" class="text-2xl font-bold text-slate-800 tracking-tight">Липень 2026</h2>
@@ -49,34 +44,23 @@
                     <button id="next-month" class="p-1.5 text-slate-600 hover:bg-slate-100 rounded transition"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
                 </div>
             </div>
-
-            <!-- Legend / Employee Badges -->
             <div id="employees-legend" class="flex flex-wrap items-center gap-2"></div>
         </div>
 
-        <!-- Calendar Grid Container -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
             <div class="grid grid-cols-7 bg-slate-50 border-b border-slate-200 text-center font-semibold text-xs text-slate-500 py-3 uppercase tracking-wider">
-                <div>Пн</div>
-                <div>Вт</div>
-                <div>Ср</div>
-                <div>Чт</div>
-                <div>Пт</div>
-                <div class="text-indigo-600">Сб</div>
-                <div class="text-rose-600">Нд</div>
+                <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div class="text-indigo-600">Сб</div><div class="text-rose-600">Нд</div>
             </div>
-
             <div id="calendar-days" class="grid grid-cols-7 divide-x divide-y divide-slate-100"></div>
         </div>
     </main>
 
     <!-- Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-6">
             <div class="flex justify-between items-center border-b pb-4">
                 <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <i data-lucide="sliders" class="w-5 h-5 text-indigo-600"></i>
-                    Налаштування відділу
+                    <i data-lucide="sliders" class="w-5 h-5 text-indigo-600"></i> Налаштування відділу
                 </h3>
                 <button id="close-settings" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
@@ -84,157 +68,192 @@
             <div>
                 <div class="flex justify-between items-center mb-3">
                     <div>
-                        <h4 class="text-sm font-semibold text-slate-700">Працівники та початкові ролі</h4>
-                        <p class="text-[11px] text-slate-500">Оберіть першого чергового на 08:00 (будні) та того, хто має вихідний у 1-шу неділю.</p>
+                        <h4 class="text-sm font-semibold text-slate-700">Працівники, ролі та відсутність</h4>
+                        <p class="text-[11px] text-slate-500">Управління лікарняними та відпустками автоматично перераховує графік інших.</p>
                     </div>
                     <button id="add-employee-btn" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                         <i data-lucide="plus" class="w-3.5 h-3.5"></i> Додати
                     </button>
                 </div>
-                <div id="settings-employees-list" class="space-y-2"></div>
+                <div id="settings-employees-list" class="space-y-3"></div>
             </div>
 
             <div class="pt-2 border-t">
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Початкова дата відліку циклу</label>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Початкова дата відліку циклу (Якір)</label>
                 <input type="date" id="anchor-date-input" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                <p class="text-[11px] text-slate-500 mt-1">Від цієї дати розраховується регулярна черговість змін 8:00 / 9:00 та недільні зміни.</p>
             </div>
 
             <div class="pt-4 border-t flex justify-end gap-2">
                 <button id="save-settings-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">
-                    Зберегти налаштування
+                    Зберегти та перерахувати
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Day Action / Override Modal -->
+    <!-- Day Action Modal -->
     <div id="day-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-5">
             <div class="flex justify-between items-center border-b pb-3">
                 <div>
-                    <h3 id="modal-date-title" class="text-base font-bold text-slate-900">30 Липня 2026</h3>
-                    <p class="text-xs text-slate-500">Управління змінами та виключеннями</p>
+                    <h3 id="modal-date-title" class="text-base font-bold text-slate-900"></h3>
+                    <p class="text-xs text-slate-500">Ручне управління змінами (Override)</p>
                 </div>
                 <button id="close-day-modal" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-
             <div id="day-shifts-editor" class="space-y-3"></div>
-
             <div class="pt-3 border-t flex justify-between items-center">
                 <button id="reset-day-btn" class="text-xs text-rose-600 hover:underline">Скинути до авторозрахунку</button>
-                <button id="save-day-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">
-                    Зберегти
-                </button>
+                <button id="save-day-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">Зберегти</button>
             </div>
         </div>
     </div>
 
-    <!-- JSON Export / Import Modal -->
+    <!-- JSON Modal -->
     <div id="json-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <!-- Вміст залишено без змін для економії місця, структура та сама -->
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
                 <h3 class="text-base font-bold text-slate-900">Експорт / Імпорт даних</h3>
                 <button id="close-json-modal" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <p class="text-xs text-slate-600">Ви можете скопіювати цей JSON-файл для збереження або імпортувати конфігурацію.</p>
             <textarea id="json-content" class="w-full h-44 font-mono text-xs p-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
             <div class="flex gap-2">
-                <button id="copy-json-btn" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1">
-                    <i data-lucide="copy" class="w-3.5 h-3.5"></i> Копіювати
-                </button>
-                <button id="apply-json-btn" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">
-                    Застосувати JSON
-                </button>
+                <button id="copy-json-btn" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1"><i data-lucide="copy" class="w-3.5 h-3.5"></i> Копіювати</button>
+                <button id="apply-json-btn" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">Застосувати JSON</button>
             </div>
         </div>
     </div>
 
-    <!-- Application Script -->
     <script>
         const DEFAULT_STATE = {
             anchorDate: "2026-07-30",
             firstEmpId: "emp_1",
             firstSundayOffEmpId: "emp_3",
             employees: [
-                { id: "emp_1", name: "Руслан", color: "#3b82f6", sickStart: null },
-                { id: "emp_2", name: "О. Плаван", color: "#10b981", sickStart: null },
-                { id: "emp_3", name: "О. Полубелов", color: "#f59e0b", sickStart: null }
+                { id: "emp_1", name: "Руслан", color: "#3b82f6", sickStart: null, vacation: null },
+                { id: "emp_2", name: "О. Плаван", color: "#10b981", sickStart: null, vacation: null },
+                { id: "emp_3", name: "О. Полубелов", color: "#f59e0b", sickStart: null, vacation: null }
             ],
             overrides: {}
         };
 
         let appState = JSON.parse(localStorage.getItem("work_schedule_data")) || DEFAULT_STATE;
-
-        // Гарантуємо наявність необхідних полів для існуючих збережених даних
-        if (!appState.firstEmpId && appState.employees.length > 0) {
-            appState.firstEmpId = appState.employees[0].id;
-        }
-        if (!appState.firstSundayOffEmpId && appState.employees.length > 0) {
-            appState.firstSundayOffEmpId = appState.employees[appState.employees.length - 1].id;
-        }
+        
+        // Гарантуємо наявність нових полів (vacation) у старих збереженнях
+        appState.employees.forEach(emp => { if (typeof emp.vacation === 'undefined') emp.vacation = null; });
 
         let currentDate = new Date(2026, 6, 30);
         let selectedDateStr = null;
+        let scheduleCache = {}; // Глобальний кеш для послідовного розрахунку
 
-        function saveState() {
-            localStorage.setItem("work_schedule_data", JSON.stringify(appState));
+        function saveState() { localStorage.setItem("work_schedule_data", JSON.stringify(appState)); }
+        function formatDateKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+        function getMonthName(m) { return ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"][m]; }
+
+        // ==========================================
+        // НОВИЙ РУШІЙ: ПОСЛІДОВНА МАШИНА СТАНІВ
+        // ==========================================
+        function buildScheduleCache(endDateObj) {
+            scheduleCache = {};
+            const anchorDate = new Date(appState.anchorDate);
+            if (isNaN(anchorDate.getTime())) return;
+
+            const allEmps = appState.employees;
+            if (allEmps.length === 0) return;
+
+            let dutyPointer = allEmps.findIndex(e => e.id === appState.firstEmpId);
+            if (dutyPointer === -1) dutyPointer = 0;
+
+            let sundayOffPointer = allEmps.findIndex(e => e.id === appState.firstSundayOffEmpId);
+            if (sundayOffPointer === -1) sundayOffPointer = 0;
+
+            let curr = new Date(anchorDate);
+            
+            // Якщо календар відкритий раніше за anchorDate, ми просто не зможемо прорахувати його вперед. 
+            // Розрахунок йде тільки ВІД anchorDate до кінця видимого місяця.
+            while (curr <= endDateObj) {
+                const dStr = formatDateKey(curr);
+                const dayOfWeek = curr.getDay();
+                let dayResult = {};
+
+                // Визначаємо статуси на сьогодні
+                let active = [], sick = [], vac = [];
+                allEmps.forEach(emp => {
+                    let isSick = emp.sickStart && dStr >= emp.sickStart;
+                    let isVac = emp.vacation && dStr >= emp.vacation.start && dStr <= emp.vacation.end;
+                    
+                    if (isVac) { vac.push(emp); dayResult[emp.id] = "ВІДПУСТКА"; }
+                    else if (isSick) { sick.push(emp); dayResult[emp.id] = "ЛІКАР"; }
+                    else { active.push(emp); }
+                });
+
+                // Перевірка: хто сьогодні вийшов з відпустки?
+                let yesterday = new Date(curr);
+                yesterday.setDate(yesterday.getDate() - 1);
+                let yStr = formatDateKey(yesterday);
+                
+                let returner = active.find(emp => emp.vacation && emp.vacation.end === yStr);
+                if (returner) {
+                    let rIdx = active.findIndex(e => e.id === returner.id);
+                    if (rIdx !== -1) dutyPointer = rIdx; // Примусово ставимо на 08:00
+                }
+
+                if (active.length > 0) {
+                    if (dayOfWeek === 0) {
+                        // НЕДІЛЯ
+                        if (active.length >= 3) {
+                            if (returner) {
+                                // Якщо хтось повернувся, він отримує 08:00. Синхронізуємо sundayOffPointer
+                                let rIdx = active.findIndex(e => e.id === returner.id);
+                                sundayOffPointer = (rIdx - 1 + active.length) % active.length;
+                            }
+                            let offIdx = sundayOffPointer % active.length;
+                            let emp8Idx = (offIdx + 1) % active.length;
+                            let emp13Idx = (offIdx + 2) % active.length;
+                            
+                            dayResult[active[offIdx].id] = "ВИХ";
+                            dayResult[active[emp8Idx].id] = "08:00";
+                            dayResult[active[emp13Idx].id] = "13:00";
+                            sundayOffPointer++;
+                        } else if (active.length === 2) {
+                            // 2 людини: чередуються 08:00 та 13:00
+                            let emp8Idx = dutyPointer % active.length;
+                            let emp13Idx = (dutyPointer + 1) % active.length;
+                            dayResult[active[emp8Idx].id] = "08:00";
+                            dayResult[active[emp13Idx].id] = "13:00";
+                            dutyPointer++; // Зсув черги
+                        } else {
+                            dayResult[active[0].id] = "08:00";
+                            dutyPointer++;
+                        }
+                    } else {
+                        // БУДНІ ТА СУБОТА
+                        let emp8Idx = dutyPointer % active.length;
+                        dayResult[active[emp8Idx].id] = "08:00";
+                        active.forEach((emp, idx) => {
+                            if (idx !== emp8Idx) dayResult[emp.id] = "09:00";
+                        });
+                        dutyPointer++;
+                    }
+                }
+
+                scheduleCache[dStr] = dayResult;
+                curr.setDate(curr.getDate() + 1);
+            }
         }
 
-        function calculateShiftsForDate(dateObj) {
+        function getShiftsForDate(dateObj) {
             const dateStr = formatDateKey(dateObj);
-            const dayOfWeek = dateObj.getDay();
-            const activeEmps = appState.employees;
-            const n = activeEmps.length;
-
-            if (n === 0) return {};
-
-            const dayOverrides = appState.overrides[dateStr] || {};
-            const anchor = new Date(appState.anchorDate);
-            const diffDays = Math.floor((dateObj - anchor) / (1000 * 60 * 60 * 24));
-
-            // Індекс стартового чергового для буднів
-            let startIdx = activeEmps.findIndex(e => e.id === appState.firstEmpId);
-            if (startIdx === -1) startIdx = 0;
-
-            // Індекс працівника, що має вихідний у 1-шу неділю
-            let offStartIdx = activeEmps.findIndex(e => e.id === appState.firstSundayOffEmpId);
-            if (offStartIdx === -1) offStartIdx = (startIdx + 2) % n;
-
-            let result = {};
-
-            if (dayOfWeek === 0) {
-                // НЕДІЛЯ: Розрахунок з точним урахуванням обраного вихідного співробітника
-                const weekIndex = Math.floor(diffDays / 7);
-                const offIdx = (((weekIndex + offStartIdx) % n) + n) % n;
-                const empIndex8 = (offIdx + 1) % n;
-                const empIndex13 = (offIdx + 2) % n;
-
-                activeEmps.forEach((emp, index) => {
-                    if (index === offIdx) {
-                        result[emp.id] = "ВИХ";
-                    } else if (index === empIndex8) {
-                        result[emp.id] = "08:00";
-                    } else if (index === empIndex13) {
-                        result[emp.id] = "13:00";
-                    }
-                });
-            } else {
-                // БУДНІ ТА СУБОТА: Зміщення циклу 08:00 від початкового працівника
-                const cycleIndex = (((diffDays + startIdx) % n) + n) % n;
-                activeEmps.forEach((emp, index) => {
-                    result[emp.id] = (index === cycleIndex) ? "08:00" : "09:00";
-                });
+            let result = scheduleCache[dateStr] ? { ...scheduleCache[dateStr] } : {};
+            
+            // Якщо дата до anchorDate (немає в кеші) - повертаємо заглушки або базові зміни
+            if (Object.keys(result).length === 0) {
+                appState.employees.forEach(emp => result[emp.id] = "—");
             }
 
-            // Облік лікарняного
-            activeEmps.forEach(emp => {
-                if (emp.sickStart && dateStr >= emp.sickStart) {
-                    result[emp.id] = "ЛІКАР";
-                }
-            });
-
-            // Ручні перевизначення (Override)
+            // Накладаємо ручні редагування
+            const dayOverrides = appState.overrides[dateStr] || {};
             Object.keys(dayOverrides).forEach(empId => {
                 if (dayOverrides[empId]) result[empId] = dayOverrides[empId];
             });
@@ -242,39 +261,11 @@
             return result;
         }
 
-        function formatDateKey(d) {
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        function getMonthName(m) {
-            return ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"][m];
-        }
-
-        function renderHeaderLegend() {
-            const container = document.getElementById("employees-legend");
-            container.innerHTML = "";
-            appState.employees.forEach(emp => {
-                const isStartEmp = emp.id === appState.firstEmpId;
-                const isSundayOff = emp.id === appState.firstSundayOffEmpId;
-                const badge = document.createElement("div");
-                badge.className = "flex items-center space-x-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-full text-xs font-medium shadow-2xs";
-                badge.innerHTML = `
-                    <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${emp.color}"></span>
-                    <span class="text-slate-700">${emp.name}</span>
-                    ${isStartEmp ? '<span title="Черговий 08:00 на старті" class="text-[10px] bg-indigo-50 text-indigo-600 px-1 rounded font-bold">1-й (будні)</span>' : ''}
-                    ${isSundayOff ? '<span title="Вихідний у 1-шу неділю" class="text-[10px] bg-rose-50 text-rose-600 px-1 rounded font-bold">ВИХ (1-ша Нд)</span>' : ''}
-                    ${emp.sickStart ? '<span class="text-[10px] text-rose-500 font-bold ml-1">(Лікарняний)</span>' : ''}
-                `;
-                container.appendChild(badge);
-            });
-        }
-
-        // СОРТУВАННЯ: Черговий 08:00 ЗАВЖДИ першим
+        // ==========================================
+        // UI ТА РЕНДЕРИНГ
+        // ==========================================
         function sortEmployeesByDuty(shifts) {
-            const priority = { "08:00": 1, "13:00": 2, "09:00": 3, "ВИХ": 4, "ЛІКАР": 5, "—": 6 };
+            const priority = { "08:00": 1, "13:00": 2, "09:00": 3, "ВИХ": 4, "ВІДПУСТКА": 5, "ЛІКАР": 6, "—": 7 };
             return [...appState.employees].sort((a, b) => {
                 const shiftA = shifts[a.id] || "—";
                 const shiftB = shifts[b.id] || "—";
@@ -285,21 +276,26 @@
         function renderCalendar() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
-
             document.getElementById("current-month-label").textContent = `${getMonthName(month)} ${year}`;
+            
             const calendarGrid = document.getElementById("calendar-days");
             calendarGrid.innerHTML = "";
 
             const firstDayOfMonth = new Date(year, month, 1);
             const lastDayOfMonth = new Date(year, month + 1, 0);
-
             let startDay = firstDayOfMonth.getDay();
             startDay = (startDay === 0) ? 6 : startDay - 1;
-
             const totalDays = lastDayOfMonth.getDate();
             const prevMonthLastDay = new Date(year, month, 0).getDate();
 
-            // Дні попереднього місяця
+            // Визначаємо останній день, який буде відрендерено, і будуємо кеш до нього
+            const totalCells = startDay + totalDays;
+            const nextPadding = (7 - (totalCells % 7)) % 7;
+            const lastGridDayObj = new Date(year, month + 1, nextPadding);
+            
+            buildScheduleCache(lastGridDayObj);
+
+            // Рендер попереднього місяця
             for (let i = startDay - 1; i >= 0; i--) {
                 const dayDiv = document.createElement("div");
                 dayDiv.className = "bg-slate-50/50 p-2 min-h-[100px] text-slate-300 text-xs select-none";
@@ -309,101 +305,157 @@
 
             const todayStr = formatDateKey(new Date());
 
-            // Дні поточного місяця
-            for (let d = 1; d <= totalDays; d++) {
-                const dayObj = new Date(year, month, d);
+            // Функція для створення карточки дня
+            const createCell = (dayObj, isNextMonth) => {
                 const dateKey = formatDateKey(dayObj);
                 const isToday = (dateKey === todayStr);
-                const shifts = calculateShiftsForDate(dayObj);
+                const shifts = getShiftsForDate(dayObj);
+                const day = dayObj.getDate();
 
                 const dayCell = document.createElement("div");
-                dayCell.className = `p-2 min-h-[110px] sm:min-h-[120px] transition hover:bg-slate-50 cursor-pointer flex flex-col justify-between ${isToday ? 'bg-indigo-50/40 font-semibold border-2 border-indigo-400' : ''}`;
+                dayCell.className = `p-2 min-h-[110px] sm:min-h-[120px] transition hover:bg-slate-50 cursor-pointer flex flex-col justify-between ${isToday ? 'bg-indigo-50/40 font-semibold border-2 border-indigo-400' : ''} ${isNextMonth ? 'bg-slate-50/60 opacity-80 border-dashed border-slate-200' : ''}`;
                 dayCell.onclick = () => openDayModal(dateKey, dayObj);
 
                 const dateHeader = document.createElement("div");
                 dateHeader.className = "flex justify-between items-center mb-2 border-b border-slate-100 pb-1";
                 dateHeader.innerHTML = `
-                    <span class="text-lg font-extrabold ${isToday ? 'px-2 py-0.5 rounded-lg bg-indigo-600 text-white shadow-sm' : 'text-slate-800'}">${d}</span>
-                    ${appState.overrides[dateKey] ? '<span title="Є ручне редагування" class="w-2 h-2 rounded-full bg-amber-500"></span>' : ''}
+                    <span class="${isNextMonth ? 'text-base font-bold text-slate-500' : 'text-lg font-extrabold text-slate-800'} ${isToday && !isNextMonth ? 'px-2 py-0.5 rounded-lg bg-indigo-600 text-white shadow-sm' : ''}">${day}</span>
+                    <div class="flex gap-1">
+                        ${isNextMonth ? '<span class="text-[9px] font-semibold text-slate-400 uppercase">наст. міс.</span>' : ''}
+                        ${appState.overrides[dateKey] ? '<span title="Є ручне редагування" class="w-2 h-2 rounded-full bg-amber-500 mt-1"></span>' : ''}
+                    </div>
                 `;
                 dayCell.appendChild(dateHeader);
 
                 const shiftsContainer = document.createElement("div");
                 shiftsContainer.className = "space-y-1 flex-1";
 
-                const sortedEmployees = sortEmployeesByDuty(shifts);
-
-                sortedEmployees.forEach(emp => {
+                sortEmployeesByDuty(shifts).forEach(emp => {
                     const shiftTime = shifts[emp.id] || "—";
                     const isOff = shiftTime === "ВИХ";
-                    const isSick = shiftTime === "ЛІКАР";
+                    const isAbs = shiftTime === "ЛІКАР" || shiftTime === "ВІДПУСТКА";
 
                     const badge = document.createElement("div");
-                    badge.className = `text-[11px] px-1.5 py-0.5 rounded flex justify-between items-center tracking-tight ${isOff ? 'opacity-40 bg-slate-100 text-slate-500' : isSick ? 'bg-rose-100 text-rose-700 font-medium' : 'text-slate-800'}`;
-                    if (!isOff && !isSick) {
+                    badge.className = `text-[11px] px-1.5 py-0.5 rounded flex justify-between items-center tracking-tight ${isOff ? 'opacity-40 bg-slate-100 text-slate-500' : isAbs ? 'bg-rose-100 text-rose-700 font-medium' : 'text-slate-800'}`;
+                    
+                    // Стилізація відпустки (синюватий колір)
+                    if (shiftTime === "ВІДПУСТКА") badge.className = 'text-[11px] px-1.5 py-0.5 rounded flex justify-between items-center tracking-tight bg-blue-100 text-blue-700 font-medium';
+
+                    if (!isOff && !isAbs) {
                         badge.style.backgroundColor = `${emp.color}15`;
                         badge.style.borderLeft = `3px solid ${emp.color}`;
                     }
 
-                    badge.innerHTML = `
-                        <span class="truncate max-w-[55px] sm:max-w-[70px]">${emp.name}</span>
-                        <span class="font-bold ml-1">${shiftTime}</span>
-                    `;
+                    badge.innerHTML = `<span class="truncate max-w-[55px] sm:max-w-[70px]">${emp.name}</span><span class="font-bold ml-1">${shiftTime}</span>`;
                     shiftsContainer.appendChild(badge);
                 });
 
                 dayCell.appendChild(shiftsContainer);
                 calendarGrid.appendChild(dayCell);
-            }
+            };
 
-            // Дні наступного місяця до найближчої неділі включно
-            const totalCells = startDay + totalDays;
-            const nextPadding = (7 - (totalCells % 7)) % 7;
+            // Рендер поточного місяця
+            for (let d = 1; d <= totalDays; d++) createCell(new Date(year, month, d), false);
+            // Рендер наступного місяця
+            for (let i = 1; i <= nextPadding; i++) createCell(new Date(year, month + 1, i), true);
+
+            lucide.createIcons();
+            renderHeaderLegend();
+        }
+
+        function renderHeaderLegend() {
+            const container = document.getElementById("employees-legend");
+            container.innerHTML = "";
+            appState.employees.forEach(emp => {
+                const isStartEmp = emp.id === appState.firstEmpId;
+                const badge = document.createElement("div");
+                badge.className = "flex items-center space-x-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-full text-xs font-medium shadow-2xs";
+                badge.innerHTML = `
+                    <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${emp.color}"></span>
+                    <span class="text-slate-700">${emp.name}</span>
+                    ${isStartEmp ? '<span title="Старт циклу" class="text-[10px] bg-indigo-50 text-indigo-600 px-1 rounded font-bold">1-й</span>' : ''}
+                    ${emp.sickStart ? '<span class="text-[10px] text-rose-500 font-bold ml-1">(Лікар)</span>' : ''}
+                    ${emp.vacation ? '<span class="text-[10px] text-blue-500 font-bold ml-1">(Відпустка)</span>' : ''}
+                `;
+                container.appendChild(badge);
+            });
+        }
+
+        function renderSettingsEmployees() {
+            const container = document.getElementById("settings-employees-list");
+            container.innerHTML = "";
             
-            for (let i = 1; i <= nextPadding; i++) {
-                const nextMonthObj = new Date(year, month + 1, i);
-                const dateKey = formatDateKey(nextMonthObj);
-                const shifts = calculateShiftsForDate(nextMonthObj);
+            appState.employees.forEach((emp, idx) => {
+                const isCheckedDuty = (emp.id === appState.firstEmpId);
+                const isCheckedSundayOff = (emp.id === appState.firstSundayOffEmpId);
+                const vac = emp.vacation;
 
-                const dayCell = document.createElement("div");
-                dayCell.className = "p-2 min-h-[110px] sm:min-h-[120px] bg-slate-50/60 transition hover:bg-slate-100/80 cursor-pointer flex flex-col justify-between opacity-80 border-dashed border-slate-200";
-                dayCell.onclick = () => openDayModal(dateKey, nextMonthObj);
-
-                const dateHeader = document.createElement("div");
-                dateHeader.className = "flex justify-between items-center mb-2 border-b border-slate-200/60 pb-1";
-                dateHeader.innerHTML = `
-                    <span class="text-base font-bold text-slate-500">${i}</span>
-                    <span class="text-[9px] font-semibold text-slate-400 uppercase">наст. міс.</span>
+                const row = document.createElement("div");
+                row.className = "flex flex-col gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200";
+                
+                let html = `
+                    <div class="flex items-center gap-2">
+                        <div class="flex flex-col gap-1 pr-2 border-r border-slate-200 text-[10px] font-semibold shrink-0">
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="first-duty-emp" value="${emp.id}" ${isCheckedDuty ? 'checked' : ''} class="first-emp-radio text-indigo-600 focus:ring-indigo-500"><span class="text-indigo-700">08:00</span></label>
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="first-sunday-off-emp" value="${emp.id}" ${isCheckedSundayOff ? 'checked' : ''} class="first-sunday-off-radio text-rose-600 focus:ring-rose-500"><span class="text-rose-700">ВИХ Нд</span></label>
+                        </div>
+                        <input type="color" value="${emp.color}" data-idx="${idx}" class="emp-color-input w-7 h-7 rounded border-none cursor-pointer shrink-0">
+                        <input type="text" value="${emp.name}" data-idx="${idx}" class="emp-name-input flex-1 min-w-[80px] text-xs border border-slate-300 rounded p-1.5 focus:ring-1 focus:ring-indigo-500 outline-none">
+                        
+                        <div class="flex flex-col sm:flex-row gap-1 shrink-0 ml-auto">
+                            <button data-idx="${idx}" class="toggle-sick-btn text-[10px] px-2 py-1 rounded transition ${emp.sickStart ? 'bg-rose-500 text-white shadow-sm' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}">${emp.sickStart ? 'На лікарняному' : '+ Лікарняний'}</button>
+                            <button data-idx="${idx}" class="toggle-vac-btn text-[10px] px-2 py-1 rounded transition ${vac ? 'bg-blue-500 text-white shadow-sm' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}">${vac ? 'У відпустці' : '+ Відпустка'}</button>
+                            <button data-idx="${idx}" class="delete-emp-btn text-slate-400 hover:text-rose-600 p-1 ml-1 rounded hover:bg-slate-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
                 `;
-                dayCell.appendChild(dateHeader);
 
-                const shiftsContainer = document.createElement("div");
-                shiftsContainer.className = "space-y-1 flex-1";
-
-                const sortedEmployees = sortEmployeesByDuty(shifts);
-
-                sortedEmployees.forEach(emp => {
-                    const shiftTime = shifts[emp.id] || "—";
-                    const isOff = shiftTime === "ВИХ";
-                    const isSick = shiftTime === "ЛІКАР";
-
-                    const badge = document.createElement("div");
-                    badge.className = `text-[11px] px-1.5 py-0.5 rounded flex justify-between items-center tracking-tight ${isOff ? 'opacity-40 bg-slate-100 text-slate-500' : isSick ? 'bg-rose-100 text-rose-700 font-medium' : 'text-slate-800'}`;
-                    if (!isOff && !isSick) {
-                        badge.style.backgroundColor = `${emp.color}15`;
-                        badge.style.borderLeft = `3px solid ${emp.color}`;
-                    }
-
-                    badge.innerHTML = `
-                        <span class="truncate max-w-[55px] sm:max-w-[70px]">${emp.name}</span>
-                        <span class="font-bold ml-1">${shiftTime}</span>
+                if (vac) {
+                    html += `
+                        <div class="flex items-center gap-2 mt-1 pt-2 border-t border-slate-200/60 bg-blue-50/50 p-2 rounded">
+                            <i data-lucide="palmtree" class="w-4 h-4 text-blue-500 shrink-0"></i>
+                            <span class="text-[11px] font-medium text-slate-600">Період:</span>
+                            <input type="date" value="${vac.start}" data-idx="${idx}" class="vac-start-input w-full max-w-[120px] text-xs border border-blue-200 rounded p-1 outline-none focus:border-blue-400 bg-white">
+                            <span class="text-slate-400">-</span>
+                            <input type="date" value="${vac.end}" data-idx="${idx}" class="vac-end-input w-full max-w-[120px] text-xs border border-blue-200 rounded p-1 outline-none focus:border-blue-400 bg-white">
+                        </div>
                     `;
-                    shiftsContainer.appendChild(badge);
-                });
+                }
 
-                dayCell.appendChild(shiftsContainer);
-                calendarGrid.appendChild(dayCell);
-            }
+                row.innerHTML = html;
+                container.appendChild(row);
+            });
+
+            // Event Listeners for Settings
+            document.querySelectorAll(".emp-color-input").forEach(i => i.onchange = e => appState.employees[e.target.dataset.idx].color = e.target.value);
+            document.querySelectorAll(".emp-name-input").forEach(i => i.onchange = e => appState.employees[e.target.dataset.idx].name = e.target.value);
+            
+            document.querySelectorAll(".toggle-sick-btn").forEach(b => b.onclick = e => {
+                const idx = e.target.dataset.idx;
+                appState.employees[idx].sickStart = appState.employees[idx].sickStart ? null : formatDateKey(new Date());
+                renderSettingsEmployees();
+            });
+
+            document.querySelectorAll(".toggle-vac-btn").forEach(b => b.onclick = e => {
+                const idx = e.target.dataset.idx;
+                if (appState.employees[idx].vacation) {
+                    appState.employees[idx].vacation = null;
+                } else {
+                    let d = new Date();
+                    let startStr = formatDateKey(d);
+                    d.setDate(d.getDate() + 13); // +13 днів (разом 14)
+                    appState.employees[idx].vacation = { start: startStr, end: formatDateKey(d) };
+                }
+                renderSettingsEmployees();
+            });
+
+            document.querySelectorAll(".vac-start-input").forEach(i => i.onchange = e => appState.employees[e.target.dataset.idx].vacation.start = e.target.value);
+            document.querySelectorAll(".vac-end-input").forEach(i => i.onchange = e => appState.employees[e.target.dataset.idx].vacation.end = e.target.value);
+
+            document.querySelectorAll(".delete-emp-btn").forEach(b => b.onclick = e => {
+                appState.employees.splice(e.currentTarget.dataset.idx, 1);
+                renderSettingsEmployees();
+            });
 
             lucide.createIcons();
         }
@@ -411,8 +463,7 @@
         function openDayModal(dateKey, dateObj) {
             selectedDateStr = dateKey;
             document.getElementById("modal-date-title").textContent = `${dateObj.getDate()} ${getMonthName(dateObj.getMonth())} ${dateObj.getFullYear()}`;
-
-            const shifts = calculateShiftsForDate(dateObj);
+            const shifts = getShiftsForDate(dateObj);
             const container = document.getElementById("day-shifts-editor");
             container.innerHTML = "";
 
@@ -422,8 +473,7 @@
                 row.className = "flex items-center justify-between gap-3 p-2 rounded-lg border border-slate-100 bg-slate-50";
                 row.innerHTML = `
                     <div class="flex items-center gap-2">
-                        <span class="w-3 h-3 rounded-full" style="background-color: ${emp.color}"></span>
-                        <span class="text-sm font-medium text-slate-800">${emp.name}</span>
+                        <span class="w-3 h-3 rounded-full" style="background-color: ${emp.color}"></span><span class="text-sm font-medium text-slate-800">${emp.name}</span>
                     </div>
                     <select data-emp-id="${emp.id}" class="shift-select text-xs font-semibold bg-white border border-slate-300 rounded-md p-1.5 focus:ring-2 focus:ring-indigo-500 outline-none">
                         <option value="08:00" ${currentVal === "08:00" ? 'selected' : ''}>08:00</option>
@@ -431,109 +481,15 @@
                         <option value="13:00" ${currentVal === "13:00" ? 'selected' : ''}>13:00</option>
                         <option value="ВИХ" ${currentVal === "ВИХ" ? 'selected' : ''}>ВИХІДНИЙ</option>
                         <option value="ЛІКАР" ${currentVal === "ЛІКАР" ? 'selected' : ''}>ЛІКАРНЯНИЙ</option>
+                        <option value="ВІДПУСТКА" ${currentVal === "ВІДПУСТКА" ? 'selected' : ''}>ВІДПУСТКА</option>
                     </select>
                 `;
                 container.appendChild(row);
             });
-
             document.getElementById("day-modal").classList.remove("hidden");
         }
 
-        document.getElementById("save-day-btn").onclick = () => {
-            if (!selectedDateStr) return;
-            const selects = document.querySelectorAll(".shift-select");
-            if (!appState.overrides[selectedDateStr]) appState.overrides[selectedDateStr] = {};
-            selects.forEach(sel => {
-                appState.overrides[selectedDateStr][sel.getAttribute("data-emp-id")] = sel.value;
-            });
-            saveState();
-            renderCalendar();
-            document.getElementById("day-modal").classList.add("hidden");
-        };
-
-        document.getElementById("reset-day-btn").onclick = () => {
-            if (!selectedDateStr) return;
-            delete appState.overrides[selectedDateStr];
-            saveState();
-            renderCalendar();
-            document.getElementById("day-modal").classList.add("hidden");
-        };
-
-        function renderSettingsEmployees() {
-            const container = document.getElementById("settings-employees-list");
-            container.innerHTML = "";
-            
-            appState.employees.forEach((emp, idx) => {
-                const isCheckedDuty = (emp.id === appState.firstEmpId || (idx === 0 && !appState.firstEmpId));
-                const isCheckedSundayOff = (emp.id === appState.firstSundayOffEmpId || (idx === appState.employees.length - 1 && !appState.firstSundayOffEmpId));
-
-                const row = document.createElement("div");
-                row.className = "flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200";
-                row.innerHTML = `
-                    <div class="flex flex-col gap-1 pr-1 border-r border-slate-200 text-[10px] font-semibold">
-                        <label class="flex items-center gap-1 cursor-pointer" title="08:00 у старт циклу">
-                            <input type="radio" name="first-duty-emp" value="${emp.id}" ${isCheckedDuty ? 'checked' : ''} class="first-emp-radio text-indigo-600 focus:ring-indigo-500 cursor-pointer">
-                            <span class="text-indigo-700">08:00</span>
-                        </label>
-                        <label class="flex items-center gap-1 cursor-pointer" title="Вихідний у 1-шу неділю">
-                            <input type="radio" name="first-sunday-off-emp" value="${emp.id}" ${isCheckedSundayOff ? 'checked' : ''} class="first-sunday-off-radio text-rose-600 focus:ring-rose-500 cursor-pointer">
-                            <span class="text-rose-700">ВИХ Нд</span>
-                        </label>
-                    </div>
-                    <input type="color" value="${emp.color}" data-idx="${idx}" class="emp-color-input w-7 h-7 rounded border-none cursor-pointer">
-                    <input type="text" value="${emp.name}" data-idx="${idx}" class="emp-name-input flex-1 text-xs border border-slate-300 rounded p-1.5 focus:ring-1 focus:ring-indigo-500 outline-none">
-                    <button data-idx="${idx}" class="toggle-sick-btn text-xs px-2 py-1 rounded ${emp.sickStart ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-700'}">
-                        ${emp.sickStart ? 'На лікарняному' : '+ Лікарняний'}
-                    </button>
-                    <button data-idx="${idx}" class="delete-emp-btn text-slate-400 hover:text-rose-600 p-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                `;
-                container.appendChild(row);
-            });
-
-            document.querySelectorAll(".emp-color-input").forEach(inp => {
-                inp.onchange = (e) => { appState.employees[e.target.dataset.idx].color = e.target.value; };
-            });
-            document.querySelectorAll(".emp-name-input").forEach(inp => {
-                inp.onchange = (e) => { appState.employees[e.target.dataset.idx].name = e.target.value; };
-            });
-            document.querySelectorAll(".toggle-sick-btn").forEach(btn => {
-                btn.onclick = (e) => {
-                    const idx = e.target.dataset.idx;
-                    appState.employees[idx].sickStart = appState.employees[idx].sickStart ? null : formatDateKey(new Date());
-                    renderSettingsEmployees();
-                };
-            });
-            document.querySelectorAll(".delete-emp-btn").forEach(btn => {
-                btn.onclick = (e) => {
-                    const deletedEmp = appState.employees[e.currentTarget.dataset.idx];
-                    appState.employees.splice(e.currentTarget.dataset.idx, 1);
-                    
-                    if (appState.firstEmpId === deletedEmp.id && appState.employees.length > 0) {
-                        appState.firstEmpId = appState.employees[0].id;
-                    }
-                    if (appState.firstSundayOffEmpId === deletedEmp.id && appState.employees.length > 0) {
-                        appState.firstSundayOffEmpId = appState.employees[appState.employees.length - 1].id;
-                    }
-                    renderSettingsEmployees();
-                };
-            });
-            lucide.createIcons();
-        }
-
-        document.getElementById("add-employee-btn").onclick = () => {
-            const colors = ["#8b5cf6", "#ec4899", "#06b6d4", "#f97316", "#84cc16"];
-            const newId = `emp_${Date.now()}`;
-            appState.employees.push({
-                id: newId,
-                name: "Новий працівник",
-                color: colors[appState.employees.length % colors.length],
-                sickStart: null
-            });
-            if (!appState.firstEmpId) appState.firstEmpId = newId;
-            if (!appState.firstSundayOffEmpId) appState.firstSundayOffEmpId = newId;
-            renderSettingsEmployees();
-        };
-
+        // Event Listeners Base
         document.getElementById("prev-month").onclick = () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); };
         document.getElementById("next-month").onclick = () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); };
         document.getElementById("today-btn").onclick = () => { currentDate = new Date(); renderCalendar(); };
@@ -547,49 +503,42 @@
 
         document.getElementById("save-settings-btn").onclick = () => {
             appState.anchorDate = document.getElementById("anchor-date-input").value;
-            
-            // Зберігаємо обидва радіобаттони
-            const selectedDutyRadio = document.querySelector(".first-emp-radio:checked");
-            if (selectedDutyRadio) appState.firstEmpId = selectedDutyRadio.value;
-
-            const selectedSundayOffRadio = document.querySelector(".first-sunday-off-radio:checked");
-            if (selectedSundayOffRadio) appState.firstSundayOffEmpId = selectedSundayOffRadio.value;
+            const selectedDuty = document.querySelector(".first-emp-radio:checked");
+            if (selectedDuty) appState.firstEmpId = selectedDuty.value;
+            const selectedSunday = document.querySelector(".first-sunday-off-radio:checked");
+            if (selectedSunday) appState.firstSundayOffEmpId = selectedSunday.value;
 
             saveState();
-            renderHeaderLegend();
             renderCalendar();
             document.getElementById("settings-modal").classList.add("hidden");
         };
 
+        document.getElementById("add-employee-btn").onclick = () => {
+            const colors = ["#8b5cf6", "#ec4899", "#06b6d4", "#f97316", "#84cc16"];
+            appState.employees.push({ id: `emp_${Date.now()}`, name: "Новий працівник", color: colors[appState.employees.length % colors.length], sickStart: null, vacation: null });
+            renderSettingsEmployees();
+        };
+
         document.getElementById("close-day-modal").onclick = () => document.getElementById("day-modal").classList.add("hidden");
-
-        document.getElementById("btn-export").onclick = () => {
-            document.getElementById("json-content").value = JSON.stringify(appState, null, 2);
-            document.getElementById("json-modal").classList.remove("hidden");
+        document.getElementById("save-day-btn").onclick = () => {
+            document.querySelectorAll(".shift-select").forEach(sel => {
+                if (!appState.overrides[selectedDateStr]) appState.overrides[selectedDateStr] = {};
+                appState.overrides[selectedDateStr][sel.getAttribute("data-emp-id")] = sel.value;
+            });
+            saveState(); renderCalendar(); document.getElementById("day-modal").classList.add("hidden");
         };
+        document.getElementById("reset-day-btn").onclick = () => {
+            delete appState.overrides[selectedDateStr];
+            saveState(); renderCalendar(); document.getElementById("day-modal").classList.add("hidden");
+        };
+
+        // JSON Modals
+        document.getElementById("btn-export").onclick = () => { document.getElementById("json-content").value = JSON.stringify(appState, null, 2); document.getElementById("json-modal").classList.remove("hidden"); };
         document.getElementById("close-json-modal").onclick = () => document.getElementById("json-modal").classList.add("hidden");
+        document.getElementById("copy-json-btn").onclick = () => { document.getElementById("json-content").select(); navigator.clipboard.writeText(document.getElementById("json-content").value); alert("Скопійовано!"); };
+        document.getElementById("apply-json-btn").onclick = () => { try { appState = JSON.parse(document.getElementById("json-content").value); saveState(); renderCalendar(); document.getElementById("json-modal").classList.add("hidden"); } catch (e) { alert("Помилка JSON: " + e.message); } };
 
-        document.getElementById("copy-json-btn").onclick = () => {
-            const textarea = document.getElementById("json-content");
-            textarea.select();
-            navigator.clipboard.writeText(textarea.value);
-            alert("JSON скопійовано в буфер обміну!");
-        };
-
-        document.getElementById("apply-json-btn").onclick = () => {
-            try {
-                appState = JSON.parse(document.getElementById("json-content").value);
-                saveState();
-                renderHeaderLegend();
-                renderCalendar();
-                document.getElementById("json-modal").classList.add("hidden");
-                alert("Дані успішно оновлено!");
-            } catch (err) {
-                alert("Помилка у форматі JSON: " + err.message);
-            }
-        };
-
-        renderHeaderLegend();
+        // Init
         renderCalendar();
     </script>
 </body>
