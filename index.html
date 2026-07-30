@@ -6,6 +6,11 @@
     <title>Графік Змін Відділу</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Firebase SDK (Compat versions for simple integration) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -20,13 +25,13 @@
             <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-md shadow-indigo-200">📅</div>
             <div>
                 <h1 class="text-lg font-semibold text-slate-900 leading-tight">Графік Змін</h1>
-                <p class="text-xs text-slate-500">Автоматичний розрахунок & Моніторинг</p>
+                <div class="flex items-center space-x-1.5">
+                    <span id="status-ping" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                    <p class="text-xs text-slate-500 font-medium" id="sync-status">Підключення до Firebase...</p>
+                </div>
             </div>
         </div>
         <div class="flex items-center space-x-2">
-            <button id="btn-export" title="Експорт / Імпорт JSON" class="p-2 text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors">
-                <i data-lucide="database" class="w-5 h-5"></i>
-            </button>
             <button id="btn-settings" title="Налаштування" class="p-2 text-slate-600 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors">
                 <i data-lucide="settings" class="w-5 h-5"></i>
             </button>
@@ -69,7 +74,7 @@
                 <div class="flex justify-between items-center mb-3">
                     <div>
                         <h4 class="text-sm font-semibold text-slate-700">Працівники, ролі та відсутність</h4>
-                        <p class="text-[11px] text-slate-500">Управління лікарняними та відпустками автоматично перераховує графік інших.</p>
+                        <p class="text-[11px] text-slate-500">Будь-які зміни миттєво збережуться у всіх користувачів.</p>
                     </div>
                     <button id="add-employee-btn" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                         <i data-lucide="plus" class="w-3.5 h-3.5"></i> Додати
@@ -85,7 +90,7 @@
 
             <div class="pt-4 border-t flex justify-end gap-2">
                 <button id="save-settings-btn" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">
-                    Зберегти та перерахувати
+                    Зберегти для всіх
                 </button>
             </div>
         </div>
@@ -97,7 +102,7 @@
             <div class="flex justify-between items-center border-b pb-3">
                 <div>
                     <h3 id="modal-date-title" class="text-base font-bold text-slate-900"></h3>
-                    <p class="text-xs text-slate-500">Ручне управління змінами (Override)</p>
+                    <p class="text-xs text-slate-500">Ручне управління змінами</p>
                 </div>
                 <button id="close-day-modal" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
@@ -109,22 +114,26 @@
         </div>
     </div>
 
-    <!-- JSON Modal -->
-    <div id="json-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="text-base font-bold text-slate-900">Експорт / Імпорт даних</h3>
-                <button id="close-json-modal" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-            </div>
-            <textarea id="json-content" class="w-full h-44 font-mono text-xs p-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
-            <div class="flex gap-2">
-                <button id="copy-json-btn" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1"><i data-lucide="copy" class="w-3.5 h-3.5"></i> Копіювати</button>
-                <button id="apply-json-btn" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">Застосувати JSON</button>
-            </div>
-        </div>
-    </div>
-
     <script>
+        // =========================================================================
+        // ВСТАВЬТЕ ВАШИ ДАННЫЕ ИЗ FIREBASE СЮДА
+        // =========================================================================
+       const firebaseConfig = {
+  apiKey: "AIzaSyDLpD5H-W2PNvoYpAYv4lpZpxiWF8QrlB0",
+  authDomain: "calendar-62d3d.firebaseapp.com",
+  databaseURL: "https://calendar-62d3d-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "calendar-62d3d",
+  storageBucket: "calendar-62d3d.firebasestorage.app",
+  messagingSenderId: "498857188735",
+  appId: "1:498857188735:web:36f6e9fce84922cc91ce4a"
+};
+        // =========================================================================
+
+        // Инициализация Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const scheduleRef = db.ref("work_schedule");
+
         const DEFAULT_STATE = {
             anchorDate: "2026-07-30",
             firstEmpId: "emp_1",
@@ -137,31 +146,56 @@
             overrides: {}
         };
 
-        let appState = JSON.parse(localStorage.getItem("work_schedule_data")) || DEFAULT_STATE;
-        
-        appState.employees.forEach(emp => { if (typeof emp.vacation === 'undefined') emp.vacation = null; });
-
+        let appState = DEFAULT_STATE;
         let currentDate = new Date(2026, 6, 30);
         let selectedDateStr = null;
-        let scheduleCache = {}; 
+        let scheduleCache = {};
 
-        function saveState() { localStorage.setItem("work_schedule_data", JSON.stringify(appState)); }
+        // МГНОВЕННАЯ СИНХРОНИЗАЦИЯ: слушатель изменений в Firebase
+        scheduleRef.on("value", (snapshot) => {
+            const data = snapshot.val();
+            const statusEl = document.getElementById("sync-status");
+            const pingEl = document.getElementById("status-ping");
+
+            if (data) {
+                appState = data;
+                if (!appState.overrides) appState.overrides = {};
+                if (!appState.employees) appState.employees = [];
+            } else {
+                // Если база данных пустая — инициализируем начальным состоянием
+                scheduleRef.set(DEFAULT_STATE);
+            }
+
+            statusEl.textContent = "Жива синхронізація (Firebase)";
+            statusEl.className = "text-xs text-emerald-600 font-medium";
+            pingEl.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+
+            renderCalendar();
+        }, (error) => {
+            console.error("Помилка Firebase:", error);
+            const statusEl = document.getElementById("sync-status");
+            const pingEl = document.getElementById("status-ping");
+            statusEl.textContent = "Помилка підключення";
+            statusEl.className = "text-xs text-rose-600 font-medium";
+            pingEl.className = "w-2 h-2 rounded-full bg-rose-500";
+        });
+
+        // Сохранение данных в облако Firebase
+        function saveStateToFirebase() {
+            scheduleRef.set(appState);
+        }
+
         function formatDateKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
         function getMonthName(m) { return ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"][m]; }
 
-        // ==========================================
-        // ІСПРАВЛЕННЫЙ РУШІЙ РОЗРАХУНКУ КЕШУ
-        // ==========================================
         function buildScheduleCache(endDateObj) {
             scheduleCache = {};
             if (!appState.anchorDate) return;
 
-            // 1. Розбір даты якоря строго в локальном времени (без сдвига UTC)
             const [aYear, aMonth, aDay] = appState.anchorDate.split('-').map(Number);
             let curr = new Date(aYear, aMonth - 1, aDay);
             curr.setHours(0, 0, 0, 0);
 
-            // 2. Конец периода расчета устанавливаем на конец дня (23:59:59.999)
             let limitDate = new Date(endDateObj);
             limitDate.setHours(23, 59, 59, 999);
 
@@ -174,7 +208,6 @@
             let sundayOffPointer = allEmps.findIndex(e => e.id === appState.firstSundayOffEmpId);
             if (sundayOffPointer === -1) sundayOffPointer = 0;
 
-            // 3. Цикл корректно включает последнее воскресенье
             while (curr <= limitDate) {
                 const dStr = formatDateKey(curr);
                 const dayOfWeek = curr.getDay();
@@ -202,7 +235,6 @@
 
                 if (active.length > 0) {
                     if (dayOfWeek === 0) {
-                        // НЕДІЛЯ
                         if (active.length >= 3) {
                             if (returner) {
                                 let rIdx = active.findIndex(e => e.id === returner.id);
@@ -227,7 +259,6 @@
                             dutyPointer++;
                         }
                     } else {
-                        // БУДНІ ТА СУБОТА
                         let emp8Idx = dutyPointer % active.length;
                         dayResult[active[emp8Idx].id] = "08:00";
                         active.forEach((emp, idx) => {
@@ -250,7 +281,7 @@
                 appState.employees.forEach(emp => result[emp.id] = "—");
             }
 
-            const dayOverrides = appState.overrides[dateStr] || {};
+            const dayOverrides = (appState.overrides && appState.overrides[dateStr]) || {};
             Object.keys(dayOverrides).forEach(empId => {
                 if (dayOverrides[empId]) result[empId] = dayOverrides[empId];
             });
@@ -307,13 +338,14 @@
                 dayCell.className = `p-2 min-h-[110px] sm:min-h-[120px] transition hover:bg-slate-50 cursor-pointer flex flex-col justify-between ${isToday ? 'bg-indigo-50/40 font-semibold border-2 border-indigo-400' : ''} ${isNextMonth ? 'bg-slate-50/60 opacity-80 border-dashed border-slate-200' : ''}`;
                 dayCell.onclick = () => openDayModal(dateKey, dayObj);
 
+                const hasOverride = appState.overrides && appState.overrides[dateKey];
+
                 const dateHeader = document.createElement("div");
                 dateHeader.className = "flex justify-between items-center mb-2 border-b border-slate-100 pb-1";
                 dateHeader.innerHTML = `
                     <span class="${isNextMonth ? 'text-base font-bold text-slate-500' : 'text-lg font-extrabold text-slate-800'} ${isToday && !isNextMonth ? 'px-2 py-0.5 rounded-lg bg-indigo-600 text-white shadow-sm' : ''}">${day}</span>
                     <div class="flex gap-1">
-                        ${isNextMonth ? '<span class="text-[9px] font-semibold text-slate-400 uppercase">наст. міс.</span>' : ''}
-                        ${appState.overrides[dateKey] ? '<span title="Є ручне редагування" class="w-2 h-2 rounded-full bg-amber-500 mt-1"></span>' : ''}
+                        ${hasOverride ? '<span title="Ручне редагування" class="w-2 h-2 rounded-full bg-amber-500 mt-1"></span>' : ''}
                     </div>
                 `;
                 dayCell.appendChild(dateHeader);
@@ -355,15 +387,11 @@
             const container = document.getElementById("employees-legend");
             container.innerHTML = "";
             appState.employees.forEach(emp => {
-                const isStartEmp = emp.id === appState.firstEmpId;
                 const badge = document.createElement("div");
                 badge.className = "flex items-center space-x-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-full text-xs font-medium shadow-2xs";
                 badge.innerHTML = `
                     <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${emp.color}"></span>
                     <span class="text-slate-700">${emp.name}</span>
-                    ${isStartEmp ? '<span title="Старт циклу" class="text-[10px] bg-indigo-50 text-indigo-600 px-1 rounded font-bold">1-й</span>' : ''}
-                    ${emp.sickStart ? '<span class="text-[10px] text-rose-500 font-bold ml-1">(Лікар)</span>' : ''}
-                    ${emp.vacation ? '<span class="text-[10px] text-blue-500 font-bold ml-1">(Відпустка)</span>' : ''}
                 `;
                 container.appendChild(badge);
             });
@@ -384,16 +412,16 @@
                 let html = `
                     <div class="flex items-center gap-2">
                         <div class="flex flex-col gap-1 pr-2 border-r border-slate-200 text-[10px] font-semibold shrink-0">
-                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="first-duty-emp" value="${emp.id}" ${isCheckedDuty ? 'checked' : ''} class="first-emp-radio text-indigo-600 focus:ring-indigo-500"><span class="text-indigo-700">08:00</span></label>
-                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="first-sunday-off-emp" value="${emp.id}" ${isCheckedSundayOff ? 'checked' : ''} class="first-sunday-off-radio text-rose-600 focus:ring-rose-500"><span class="text-rose-700">ВИХ Нд</span></label>
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="first-duty-emp" value="${emp.id}" ${isCheckedDuty ? 'checked' : ''} class="first-emp-radio text-indigo-600"><span class="text-indigo-700">08:00</span></label>
+                            <label class="flex items-center gap-1 cursor-pointer"><input type="radio" name="first-sunday-off-emp" value="${emp.id}" ${isCheckedSundayOff ? 'checked' : ''} class="first-sunday-off-radio text-rose-600"><span class="text-rose-700">ВИХ Нд</span></label>
                         </div>
                         <input type="color" value="${emp.color}" data-idx="${idx}" class="emp-color-input w-7 h-7 rounded border-none cursor-pointer shrink-0">
-                        <input type="text" value="${emp.name}" data-idx="${idx}" class="emp-name-input flex-1 min-w-[80px] text-xs border border-slate-300 rounded p-1.5 focus:ring-1 focus:ring-indigo-500 outline-none">
+                        <input type="text" value="${emp.name}" data-idx="${idx}" class="emp-name-input flex-1 min-w-[80px] text-xs border border-slate-300 rounded p-1.5 outline-none">
                         
                         <div class="flex flex-col sm:flex-row gap-1 shrink-0 ml-auto">
-                            <button data-idx="${idx}" class="toggle-sick-btn text-[10px] px-2 py-1 rounded transition ${emp.sickStart ? 'bg-rose-500 text-white shadow-sm' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}">${emp.sickStart ? 'На лікарняному' : '+ Лікарняний'}</button>
-                            <button data-idx="${idx}" class="toggle-vac-btn text-[10px] px-2 py-1 rounded transition ${vac ? 'bg-blue-500 text-white shadow-sm' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}">${vac ? 'У відпустці' : '+ Відпустка'}</button>
-                            <button data-idx="${idx}" class="delete-emp-btn text-slate-400 hover:text-rose-600 p-1 ml-1 rounded hover:bg-slate-200"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            <button data-idx="${idx}" class="toggle-sick-btn text-[10px] px-2 py-1 rounded ${emp.sickStart ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-700'}">${emp.sickStart ? 'На лікарняному' : '+ Лікарняний'}</button>
+                            <button data-idx="${idx}" class="toggle-vac-btn text-[10px] px-2 py-1 rounded ${vac ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-700'}">${vac ? 'У відпустці' : '+ Відпустка'}</button>
+                            <button data-idx="${idx}" class="delete-emp-btn text-slate-400 hover:text-rose-600 p-1 ml-1"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                         </div>
                     </div>
                 `;
@@ -403,9 +431,9 @@
                         <div class="flex items-center gap-2 mt-1 pt-2 border-t border-slate-200/60 bg-blue-50/50 p-2 rounded">
                             <i data-lucide="palmtree" class="w-4 h-4 text-blue-500 shrink-0"></i>
                             <span class="text-[11px] font-medium text-slate-600">Період:</span>
-                            <input type="date" value="${vac.start}" data-idx="${idx}" class="vac-start-input w-full max-w-[120px] text-xs border border-blue-200 rounded p-1 outline-none focus:border-blue-400 bg-white">
+                            <input type="date" value="${vac.start}" data-idx="${idx}" class="vac-start-input text-xs border border-blue-200 rounded p-1 bg-white">
                             <span class="text-slate-400">-</span>
-                            <input type="date" value="${vac.end}" data-idx="${idx}" class="vac-end-input w-full max-w-[120px] text-xs border border-blue-200 rounded p-1 outline-none focus:border-blue-400 bg-white">
+                            <input type="date" value="${vac.end}" data-idx="${idx}" class="vac-end-input text-xs border border-blue-200 rounded p-1 bg-white">
                         </div>
                     `;
                 }
@@ -416,13 +444,11 @@
 
             document.querySelectorAll(".emp-color-input").forEach(i => i.onchange = e => appState.employees[e.target.dataset.idx].color = e.target.value);
             document.querySelectorAll(".emp-name-input").forEach(i => i.onchange = e => appState.employees[e.target.dataset.idx].name = e.target.value);
-            
             document.querySelectorAll(".toggle-sick-btn").forEach(b => b.onclick = e => {
                 const idx = e.target.dataset.idx;
                 appState.employees[idx].sickStart = appState.employees[idx].sickStart ? null : formatDateKey(new Date());
                 renderSettingsEmployees();
             });
-
             document.querySelectorAll(".toggle-vac-btn").forEach(b => b.onclick = e => {
                 const idx = e.target.dataset.idx;
                 if (appState.employees[idx].vacation) {
@@ -435,10 +461,8 @@
                 }
                 renderSettingsEmployees();
             });
-
             document.querySelectorAll(".vac-start-input").forEach(i => i.onchange = e => appState.employees[e.target.dataset.idx].vacation.start = e.target.value);
             document.querySelectorAll(".vac-end-input").forEach(i => i.onchange = e => appState.employees[e.target.dataset.idx].vacation.end = e.target.value);
-
             document.querySelectorAll(".delete-emp-btn").forEach(b => b.onclick = e => {
                 appState.employees.splice(e.currentTarget.dataset.idx, 1);
                 renderSettingsEmployees();
@@ -462,7 +486,7 @@
                     <div class="flex items-center gap-2">
                         <span class="w-3 h-3 rounded-full" style="background-color: ${emp.color}"></span><span class="text-sm font-medium text-slate-800">${emp.name}</span>
                     </div>
-                    <select data-emp-id="${emp.id}" class="shift-select text-xs font-semibold bg-white border border-slate-300 rounded-md p-1.5 focus:ring-2 focus:ring-indigo-500 outline-none">
+                    <select data-emp-id="${emp.id}" class="shift-select text-xs font-semibold bg-white border border-slate-300 rounded-md p-1.5 outline-none">
                         <option value="08:00" ${currentVal === "08:00" ? 'selected' : ''}>08:00</option>
                         <option value="09:00" ${currentVal === "09:00" ? 'selected' : ''}>09:00</option>
                         <option value="13:00" ${currentVal === "13:00" ? 'selected' : ''}>13:00</option>
@@ -476,6 +500,7 @@
             document.getElementById("day-modal").classList.remove("hidden");
         }
 
+        // Navigation & Events
         document.getElementById("prev-month").onclick = () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); };
         document.getElementById("next-month").onclick = () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); };
         document.getElementById("today-btn").onclick = () => { currentDate = new Date(); renderCalendar(); };
@@ -494,9 +519,27 @@
             const selectedSunday = document.querySelector(".first-sunday-off-radio:checked");
             if (selectedSunday) appState.firstSundayOffEmpId = selectedSunday.value;
 
-            saveState();
-            renderCalendar();
+            saveStateToFirebase();
             document.getElementById("settings-modal").classList.add("hidden");
+        };
+
+        document.getElementById("close-day-modal").onclick = () => document.getElementById("day-modal").classList.add("hidden");
+        document.getElementById("save-day-btn").onclick = () => {
+            document.querySelectorAll(".shift-select").forEach(sel => {
+                if (!appState.overrides) appState.overrides = {};
+                if (!appState.overrides[selectedDateStr]) appState.overrides[selectedDateStr] = {};
+                appState.overrides[selectedDateStr][sel.getAttribute("data-emp-id")] = sel.value;
+            });
+            saveStateToFirebase(); 
+            document.getElementById("day-modal").classList.add("hidden");
+        };
+
+        document.getElementById("reset-day-btn").onclick = () => {
+            if (appState.overrides && appState.overrides[selectedDateStr]) {
+                delete appState.overrides[selectedDateStr];
+                saveStateToFirebase();
+            }
+            document.getElementById("day-modal").classList.add("hidden");
         };
 
         document.getElementById("add-employee-btn").onclick = () => {
@@ -504,26 +547,6 @@
             appState.employees.push({ id: `emp_${Date.now()}`, name: "Новий працівник", color: colors[appState.employees.length % colors.length], sickStart: null, vacation: null });
             renderSettingsEmployees();
         };
-
-        document.getElementById("close-day-modal").onclick = () => document.getElementById("day-modal").classList.add("hidden");
-        document.getElementById("save-day-btn").onclick = () => {
-            document.querySelectorAll(".shift-select").forEach(sel => {
-                if (!appState.overrides[selectedDateStr]) appState.overrides[selectedDateStr] = {};
-                appState.overrides[selectedDateStr][sel.getAttribute("data-emp-id")] = sel.value;
-            });
-            saveState(); renderCalendar(); document.getElementById("day-modal").classList.add("hidden");
-        };
-        document.getElementById("reset-day-btn").onclick = () => {
-            delete appState.overrides[selectedDateStr];
-            saveState(); renderCalendar(); document.getElementById("day-modal").classList.add("hidden");
-        };
-
-        document.getElementById("btn-export").onclick = () => { document.getElementById("json-content").value = JSON.stringify(appState, null, 2); document.getElementById("json-modal").classList.remove("hidden"); };
-        document.getElementById("close-json-modal").onclick = () => document.getElementById("json-modal").classList.add("hidden");
-        document.getElementById("copy-json-btn").onclick = () => { document.getElementById("json-content").select(); navigator.clipboard.writeText(document.getElementById("json-content").value); alert("Скопійовано!"); };
-        document.getElementById("apply-json-btn").onclick = () => { try { appState = JSON.parse(document.getElementById("json-content").value); saveState(); renderCalendar(); document.getElementById("json-modal").classList.add("hidden"); } catch (e) { alert("Помилка JSON: " + e.message); } };
-
-        renderCalendar();
     </script>
 </body>
 </html>
