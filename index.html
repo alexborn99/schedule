@@ -84,8 +84,8 @@
             <div>
                 <div class="flex justify-between items-center mb-3">
                     <div>
-                        <h4 class="text-sm font-semibold text-slate-700">Працівники та їхні кольори</h4>
-                        <p class="text-[11px] text-slate-500">Позначте радіобаттоном, хто заступає **першим на 08:00** у дату відліку.</p>
+                        <h4 class="text-sm font-semibold text-slate-700">Працівники та початкові ролі</h4>
+                        <p class="text-[11px] text-slate-500">Оберіть першого чергового на 08:00 (будні) та того, хто має вихідний у 1-шу неділю.</p>
                     </div>
                     <button id="add-employee-btn" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                         <i data-lucide="plus" class="w-3.5 h-3.5"></i> Додати
@@ -155,6 +155,7 @@
         const DEFAULT_STATE = {
             anchorDate: "2026-07-30",
             firstEmpId: "emp_1",
+            firstSundayOffEmpId: "emp_3",
             employees: [
                 { id: "emp_1", name: "Руслан", color: "#3b82f6", sickStart: null },
                 { id: "emp_2", name: "О. Плаван", color: "#10b981", sickStart: null },
@@ -164,10 +165,13 @@
         };
 
         let appState = JSON.parse(localStorage.getItem("work_schedule_data")) || DEFAULT_STATE;
-        
-        // Гарантуємо наявність поля firstEmpId
+
+        // Гарантуємо наявність необхідних полів для існуючих збережених даних
         if (!appState.firstEmpId && appState.employees.length > 0) {
             appState.firstEmpId = appState.employees[0].id;
+        }
+        if (!appState.firstSundayOffEmpId && appState.employees.length > 0) {
+            appState.firstSundayOffEmpId = appState.employees[appState.employees.length - 1].id;
         }
 
         let currentDate = new Date(2026, 6, 30);
@@ -189,31 +193,34 @@
             const anchor = new Date(appState.anchorDate);
             const diffDays = Math.floor((dateObj - anchor) / (1000 * 60 * 60 * 24));
 
-            // Індекс співробітника, який є першим у циклі
+            // Індекс стартового чергового для буднів
             let startIdx = activeEmps.findIndex(e => e.id === appState.firstEmpId);
             if (startIdx === -1) startIdx = 0;
+
+            // Індекс працівника, що має вихідний у 1-шу неділю
+            let offStartIdx = activeEmps.findIndex(e => e.id === appState.firstSundayOffEmpId);
+            if (offStartIdx === -1) offStartIdx = (startIdx + 2) % n;
 
             let result = {};
 
             if (dayOfWeek === 0) {
-                // НЕДІЛЯ: Розрахунок з урахуванням обраного першого працівника
+                // НЕДІЛЯ: Розрахунок з точним урахуванням обраного вихідного співробітника
                 const weekIndex = Math.floor(diffDays / 7);
-                const w = (((weekIndex + startIdx) % n) + n) % n;
-                
-                const empIndex8 = w;
-                const empIndex13 = (w + 1) % n;
+                const offIdx = (((weekIndex + offStartIdx) % n) + n) % n;
+                const empIndex8 = (offIdx + 1) % n;
+                const empIndex13 = (offIdx + 2) % n;
 
                 activeEmps.forEach((emp, index) => {
-                    if (index === empIndex8) {
+                    if (index === offIdx) {
+                        result[emp.id] = "ВИХ";
+                    } else if (index === empIndex8) {
                         result[emp.id] = "08:00";
                     } else if (index === empIndex13) {
                         result[emp.id] = "13:00";
-                    } else {
-                        result[emp.id] = "ВИХ";
                     }
                 });
             } else {
-                // БУДНІ ТА СУБОТА: Зміщення циклу від початкового працівника
+                // БУДНІ ТА СУБОТА: Зміщення циклу 08:00 від початкового працівника
                 const cycleIndex = (((diffDays + startIdx) % n) + n) % n;
                 activeEmps.forEach((emp, index) => {
                     result[emp.id] = (index === cycleIndex) ? "08:00" : "09:00";
@@ -227,7 +234,7 @@
                 }
             });
 
-            // Ручні переопределення (Override)
+            // Ручні перевизначення (Override)
             Object.keys(dayOverrides).forEach(empId => {
                 if (dayOverrides[empId]) result[empId] = dayOverrides[empId];
             });
@@ -251,12 +258,14 @@
             container.innerHTML = "";
             appState.employees.forEach(emp => {
                 const isStartEmp = emp.id === appState.firstEmpId;
+                const isSundayOff = emp.id === appState.firstSundayOffEmpId;
                 const badge = document.createElement("div");
                 badge.className = "flex items-center space-x-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-full text-xs font-medium shadow-2xs";
                 badge.innerHTML = `
                     <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${emp.color}"></span>
                     <span class="text-slate-700">${emp.name}</span>
-                    ${isStartEmp ? '<span title="Стартовий черговий циклу" class="text-[10px] bg-indigo-50 text-indigo-600 px-1 rounded font-bold">1-й</span>' : ''}
+                    ${isStartEmp ? '<span title="Черговий 08:00 на старті" class="text-[10px] bg-indigo-50 text-indigo-600 px-1 rounded font-bold">1-й (будні)</span>' : ''}
+                    ${isSundayOff ? '<span title="Вихідний у 1-шу неділю" class="text-[10px] bg-rose-50 text-rose-600 px-1 rounded font-bold">ВИХ (1-ша Нд)</span>' : ''}
                     ${emp.sickStart ? '<span class="text-[10px] text-rose-500 font-bold ml-1">(Лікарняний)</span>' : ''}
                 `;
                 container.appendChild(badge);
@@ -455,13 +464,22 @@
             container.innerHTML = "";
             
             appState.employees.forEach((emp, idx) => {
-                const isChecked = (emp.id === appState.firstEmpId || (idx === 0 && !appState.firstEmpId));
+                const isCheckedDuty = (emp.id === appState.firstEmpId || (idx === 0 && !appState.firstEmpId));
+                const isCheckedSundayOff = (emp.id === appState.firstSundayOffEmpId || (idx === appState.employees.length - 1 && !appState.firstSundayOffEmpId));
+
                 const row = document.createElement("div");
-                row.className = "flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200";
+                row.className = "flex items-center gap-2 bg-slate-50 p-2.5 rounded-lg border border-slate-200";
                 row.innerHTML = `
-                    <label class="flex items-center cursor-pointer p-1 hover:bg-slate-200/50 rounded" title="Зробити першим у черзі (08:00)">
-                        <input type="radio" name="first-duty-emp" value="${emp.id}" ${isChecked ? 'checked' : ''} class="first-emp-radio w-4 h-4 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
-                    </label>
+                    <div class="flex flex-col gap-1 pr-1 border-r border-slate-200 text-[10px] font-semibold">
+                        <label class="flex items-center gap-1 cursor-pointer" title="08:00 у старт циклу">
+                            <input type="radio" name="first-duty-emp" value="${emp.id}" ${isCheckedDuty ? 'checked' : ''} class="first-emp-radio text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                            <span class="text-indigo-700">08:00</span>
+                        </label>
+                        <label class="flex items-center gap-1 cursor-pointer" title="Вихідний у 1-шу неділю">
+                            <input type="radio" name="first-sunday-off-emp" value="${emp.id}" ${isCheckedSundayOff ? 'checked' : ''} class="first-sunday-off-radio text-rose-600 focus:ring-rose-500 cursor-pointer">
+                            <span class="text-rose-700">ВИХ Нд</span>
+                        </label>
+                    </div>
                     <input type="color" value="${emp.color}" data-idx="${idx}" class="emp-color-input w-7 h-7 rounded border-none cursor-pointer">
                     <input type="text" value="${emp.name}" data-idx="${idx}" class="emp-name-input flex-1 text-xs border border-slate-300 rounded p-1.5 focus:ring-1 focus:ring-indigo-500 outline-none">
                     <button data-idx="${idx}" class="toggle-sick-btn text-xs px-2 py-1 rounded ${emp.sickStart ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-700'}">
@@ -489,8 +507,12 @@
                 btn.onclick = (e) => {
                     const deletedEmp = appState.employees[e.currentTarget.dataset.idx];
                     appState.employees.splice(e.currentTarget.dataset.idx, 1);
+                    
                     if (appState.firstEmpId === deletedEmp.id && appState.employees.length > 0) {
                         appState.firstEmpId = appState.employees[0].id;
+                    }
+                    if (appState.firstSundayOffEmpId === deletedEmp.id && appState.employees.length > 0) {
+                        appState.firstSundayOffEmpId = appState.employees[appState.employees.length - 1].id;
                     }
                     renderSettingsEmployees();
                 };
@@ -508,6 +530,7 @@
                 sickStart: null
             });
             if (!appState.firstEmpId) appState.firstEmpId = newId;
+            if (!appState.firstSundayOffEmpId) appState.firstSundayOffEmpId = newId;
             renderSettingsEmployees();
         };
 
@@ -525,11 +548,12 @@
         document.getElementById("save-settings-btn").onclick = () => {
             appState.anchorDate = document.getElementById("anchor-date-input").value;
             
-            // Зберігаємо вибраний радіобаттон
-            const selectedRadio = document.querySelector(".first-emp-radio:checked");
-            if (selectedRadio) {
-                appState.firstEmpId = selectedRadio.value;
-            }
+            // Зберігаємо обидва радіобаттони
+            const selectedDutyRadio = document.querySelector(".first-emp-radio:checked");
+            if (selectedDutyRadio) appState.firstEmpId = selectedDutyRadio.value;
+
+            const selectedSundayOffRadio = document.querySelector(".first-sunday-off-radio:checked");
+            if (selectedSundayOffRadio) appState.firstSundayOffEmpId = selectedSundayOffRadio.value;
 
             saveState();
             renderHeaderLegend();
