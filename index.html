@@ -111,7 +111,6 @@
 
     <!-- JSON Modal -->
     <div id="json-modal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <!-- Вміст залишено без змін для економії місця, структура та сама -->
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
             <div class="flex justify-between items-center border-b pb-3">
                 <h3 class="text-base font-bold text-slate-900">Експорт / Імпорт даних</h3>
@@ -140,24 +139,31 @@
 
         let appState = JSON.parse(localStorage.getItem("work_schedule_data")) || DEFAULT_STATE;
         
-        // Гарантуємо наявність нових полів (vacation) у старих збереженнях
         appState.employees.forEach(emp => { if (typeof emp.vacation === 'undefined') emp.vacation = null; });
 
         let currentDate = new Date(2026, 6, 30);
         let selectedDateStr = null;
-        let scheduleCache = {}; // Глобальний кеш для послідовного розрахунку
+        let scheduleCache = {}; 
 
         function saveState() { localStorage.setItem("work_schedule_data", JSON.stringify(appState)); }
         function formatDateKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
         function getMonthName(m) { return ["Січень", "Лютий", "Березень", "Квітень", "Травень", "Червень", "Липень", "Серпень", "Вересень", "Жовтень", "Листопад", "Грудень"][m]; }
 
         // ==========================================
-        // НОВИЙ РУШІЙ: ПОСЛІДОВНА МАШИНА СТАНІВ
+        // ІСПРАВЛЕННЫЙ РУШІЙ РОЗРАХУНКУ КЕШУ
         // ==========================================
         function buildScheduleCache(endDateObj) {
             scheduleCache = {};
-            const anchorDate = new Date(appState.anchorDate);
-            if (isNaN(anchorDate.getTime())) return;
+            if (!appState.anchorDate) return;
+
+            // 1. Розбір даты якоря строго в локальном времени (без сдвига UTC)
+            const [aYear, aMonth, aDay] = appState.anchorDate.split('-').map(Number);
+            let curr = new Date(aYear, aMonth - 1, aDay);
+            curr.setHours(0, 0, 0, 0);
+
+            // 2. Конец периода расчета устанавливаем на конец дня (23:59:59.999)
+            let limitDate = new Date(endDateObj);
+            limitDate.setHours(23, 59, 59, 999);
 
             const allEmps = appState.employees;
             if (allEmps.length === 0) return;
@@ -168,16 +174,12 @@
             let sundayOffPointer = allEmps.findIndex(e => e.id === appState.firstSundayOffEmpId);
             if (sundayOffPointer === -1) sundayOffPointer = 0;
 
-            let curr = new Date(anchorDate);
-            
-            // Якщо календар відкритий раніше за anchorDate, ми просто не зможемо прорахувати його вперед. 
-            // Розрахунок йде тільки ВІД anchorDate до кінця видимого місяця.
-            while (curr <= endDateObj) {
+            // 3. Цикл корректно включает последнее воскресенье
+            while (curr <= limitDate) {
                 const dStr = formatDateKey(curr);
                 const dayOfWeek = curr.getDay();
                 let dayResult = {};
 
-                // Визначаємо статуси на сьогодні
                 let active = [], sick = [], vac = [];
                 allEmps.forEach(emp => {
                     let isSick = emp.sickStart && dStr >= emp.sickStart;
@@ -188,7 +190,6 @@
                     else { active.push(emp); }
                 });
 
-                // Перевірка: хто сьогодні вийшов з відпустки?
                 let yesterday = new Date(curr);
                 yesterday.setDate(yesterday.getDate() - 1);
                 let yStr = formatDateKey(yesterday);
@@ -196,7 +197,7 @@
                 let returner = active.find(emp => emp.vacation && emp.vacation.end === yStr);
                 if (returner) {
                     let rIdx = active.findIndex(e => e.id === returner.id);
-                    if (rIdx !== -1) dutyPointer = rIdx; // Примусово ставимо на 08:00
+                    if (rIdx !== -1) dutyPointer = rIdx; 
                 }
 
                 if (active.length > 0) {
@@ -204,7 +205,6 @@
                         // НЕДІЛЯ
                         if (active.length >= 3) {
                             if (returner) {
-                                // Якщо хтось повернувся, він отримує 08:00. Синхронізуємо sundayOffPointer
                                 let rIdx = active.findIndex(e => e.id === returner.id);
                                 sundayOffPointer = (rIdx - 1 + active.length) % active.length;
                             }
@@ -217,12 +217,11 @@
                             dayResult[active[emp13Idx].id] = "13:00";
                             sundayOffPointer++;
                         } else if (active.length === 2) {
-                            // 2 людини: чередуються 08:00 та 13:00
                             let emp8Idx = dutyPointer % active.length;
                             let emp13Idx = (dutyPointer + 1) % active.length;
                             dayResult[active[emp8Idx].id] = "08:00";
                             dayResult[active[emp13Idx].id] = "13:00";
-                            dutyPointer++; // Зсув черги
+                            dutyPointer++;
                         } else {
                             dayResult[active[0].id] = "08:00";
                             dutyPointer++;
@@ -247,12 +246,10 @@
             const dateStr = formatDateKey(dateObj);
             let result = scheduleCache[dateStr] ? { ...scheduleCache[dateStr] } : {};
             
-            // Якщо дата до anchorDate (немає в кеші) - повертаємо заглушки або базові зміни
             if (Object.keys(result).length === 0) {
                 appState.employees.forEach(emp => result[emp.id] = "—");
             }
 
-            // Накладаємо ручні редагування
             const dayOverrides = appState.overrides[dateStr] || {};
             Object.keys(dayOverrides).forEach(empId => {
                 if (dayOverrides[empId]) result[empId] = dayOverrides[empId];
@@ -261,9 +258,6 @@
             return result;
         }
 
-        // ==========================================
-        // UI ТА РЕНДЕРИНГ
-        // ==========================================
         function sortEmployeesByDuty(shifts) {
             const priority = { "08:00": 1, "13:00": 2, "09:00": 3, "ВИХ": 4, "ВІДПУСТКА": 5, "ЛІКАР": 6, "—": 7 };
             return [...appState.employees].sort((a, b) => {
@@ -288,14 +282,12 @@
             const totalDays = lastDayOfMonth.getDate();
             const prevMonthLastDay = new Date(year, month, 0).getDate();
 
-            // Визначаємо останній день, який буде відрендерено, і будуємо кеш до нього
             const totalCells = startDay + totalDays;
             const nextPadding = (7 - (totalCells % 7)) % 7;
             const lastGridDayObj = new Date(year, month + 1, nextPadding);
             
             buildScheduleCache(lastGridDayObj);
 
-            // Рендер попереднього місяця
             for (let i = startDay - 1; i >= 0; i--) {
                 const dayDiv = document.createElement("div");
                 dayDiv.className = "bg-slate-50/50 p-2 min-h-[100px] text-slate-300 text-xs select-none";
@@ -305,7 +297,6 @@
 
             const todayStr = formatDateKey(new Date());
 
-            // Функція для створення карточки дня
             const createCell = (dayObj, isNextMonth) => {
                 const dateKey = formatDateKey(dayObj);
                 const isToday = (dateKey === todayStr);
@@ -338,7 +329,6 @@
                     const badge = document.createElement("div");
                     badge.className = `text-[11px] px-1.5 py-0.5 rounded flex justify-between items-center tracking-tight ${isOff ? 'opacity-40 bg-slate-100 text-slate-500' : isAbs ? 'bg-rose-100 text-rose-700 font-medium' : 'text-slate-800'}`;
                     
-                    // Стилізація відпустки (синюватий колір)
                     if (shiftTime === "ВІДПУСТКА") badge.className = 'text-[11px] px-1.5 py-0.5 rounded flex justify-between items-center tracking-tight bg-blue-100 text-blue-700 font-medium';
 
                     if (!isOff && !isAbs) {
@@ -354,9 +344,7 @@
                 calendarGrid.appendChild(dayCell);
             };
 
-            // Рендер поточного місяця
             for (let d = 1; d <= totalDays; d++) createCell(new Date(year, month, d), false);
-            // Рендер наступного місяця
             for (let i = 1; i <= nextPadding; i++) createCell(new Date(year, month + 1, i), true);
 
             lucide.createIcons();
@@ -426,7 +414,6 @@
                 container.appendChild(row);
             });
 
-            // Event Listeners for Settings
             document.querySelectorAll(".emp-color-input").forEach(i => i.onchange = e => appState.employees[e.target.dataset.idx].color = e.target.value);
             document.querySelectorAll(".emp-name-input").forEach(i => i.onchange = e => appState.employees[e.target.dataset.idx].name = e.target.value);
             
@@ -443,7 +430,7 @@
                 } else {
                     let d = new Date();
                     let startStr = formatDateKey(d);
-                    d.setDate(d.getDate() + 13); // +13 днів (разом 14)
+                    d.setDate(d.getDate() + 13);
                     appState.employees[idx].vacation = { start: startStr, end: formatDateKey(d) };
                 }
                 renderSettingsEmployees();
@@ -489,7 +476,6 @@
             document.getElementById("day-modal").classList.remove("hidden");
         }
 
-        // Event Listeners Base
         document.getElementById("prev-month").onclick = () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); };
         document.getElementById("next-month").onclick = () => { currentDate.setMonth(currentDate.getMonth() + 1); renderCalendar(); };
         document.getElementById("today-btn").onclick = () => { currentDate = new Date(); renderCalendar(); };
@@ -532,13 +518,11 @@
             saveState(); renderCalendar(); document.getElementById("day-modal").classList.add("hidden");
         };
 
-        // JSON Modals
         document.getElementById("btn-export").onclick = () => { document.getElementById("json-content").value = JSON.stringify(appState, null, 2); document.getElementById("json-modal").classList.remove("hidden"); };
         document.getElementById("close-json-modal").onclick = () => document.getElementById("json-modal").classList.add("hidden");
         document.getElementById("copy-json-btn").onclick = () => { document.getElementById("json-content").select(); navigator.clipboard.writeText(document.getElementById("json-content").value); alert("Скопійовано!"); };
         document.getElementById("apply-json-btn").onclick = () => { try { appState = JSON.parse(document.getElementById("json-content").value); saveState(); renderCalendar(); document.getElementById("json-modal").classList.add("hidden"); } catch (e) { alert("Помилка JSON: " + e.message); } };
 
-        // Init
         renderCalendar();
     </script>
 </body>
