@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Розклад Роботи Відділу</title>
+    <title>Графік Змін Відділу</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
@@ -94,7 +94,7 @@
             <div class="pt-2 border-t">
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Початкова дата відліку циклу</label>
                 <input type="date" id="anchor-date-input" class="w-full border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                <p class="text-[11px] text-slate-500 mt-1">Від цієї дати розраховується регулярна черговість змін 8:00 / 9:00.</p>
+                <p class="text-[11px] text-slate-500 mt-1">Від цієї дати розраховується регулярна черговість змін 8:00 / 9:00 та недільні зміни.</p>
             </div>
 
             <div class="pt-4 border-t flex justify-end gap-2">
@@ -134,13 +134,13 @@
                 <h3 class="text-base font-bold text-slate-900">Експорт / Імпорт даних</h3>
                 <button id="close-json-modal" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
-            <p class="text-xs text-slate-600">Ви можете скопіювати цей JSON-файл для збереження або імпортувати раніше збережену конфігурацію.</p>
+            <p class="text-xs text-slate-600">Ви можете скопіювати цей JSON-файл для збереження або імпортувати конфігурацію.</p>
             <textarea id="json-content" class="w-full h-44 font-mono text-xs p-2.5 border border-slate-300 rounded-lg bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
             <div class="flex gap-2">
                 <button id="copy-json-btn" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1">
                     <i data-lucide="copy" class="w-3.5 h-3.5"></i> Копіювати
                 </button>
-                <button id="apply-json-btn" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium transition">
+                <button id="apply-json-btn" class="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition">
                     Застосувати JSON
                 </button>
             </div>
@@ -152,21 +152,14 @@
         const DEFAULT_STATE = {
             anchorDate: "2026-07-30",
             employees: [
-                { id: "emp_1", name: "Я", color: "#3b82f6", sickStart: null },
-                { id: "emp_2", name: "Руслан", color: "#10b981", sickStart: null },
-                { id: "emp_3", name: "Олег", color: "#f59e0b", sickStart: null }
+                { id: "emp_1", name: "Руслан", color: "#3b82f6", sickStart: null },
+                { id: "emp_2", name: "О. Плаван", color: "#10b981", sickStart: null },
+                { id: "emp_3", name: "О. Полубелов", color: "#f59e0b", sickStart: null }
             ],
             overrides: {}
         };
 
         let appState = JSON.parse(localStorage.getItem("work_schedule_data")) || DEFAULT_STATE;
-
-        // Автоматична синхронізація структури для першої сесії
-        if (appState.employees.length < 3) {
-            appState = DEFAULT_STATE;
-            localStorage.setItem("work_schedule_data", JSON.stringify(appState));
-        }
-
         let currentDate = new Date(2026, 6, 30);
         let selectedDateStr = null;
 
@@ -189,10 +182,12 @@
             let result = {};
 
             if (dayOfWeek === 0) {
-                // Неділя: 1 працює з 08:00, 1 працює з 13:00, лише 1 вихідний (ВИХ)
+                // НЕДІЛЯ: Розрахунок позитивного остачі від ділення для гарантії ротації
                 const weekIndex = Math.floor(diffDays / 7);
-                const empIndex8 = Math.abs(weekIndex) % n;
-                const empIndex13 = (Math.abs(weekIndex) + 1) % n;
+                const w = ((weekIndex % n) + n) % n;
+                
+                const empIndex8 = w;
+                const empIndex13 = (w + 1) % n;
 
                 activeEmps.forEach((emp, index) => {
                     if (index === empIndex8) {
@@ -204,7 +199,7 @@
                     }
                 });
             } else {
-                // Регулярний будній цикл 08:00 / 09:00
+                // БУДНІ ТА СУБОТА: 1 черговий на 08:00, решта на 09:00
                 const cycleIndex = ((diffDays % n) + n) % n;
                 activeEmps.forEach((emp, index) => {
                     result[emp.id] = (index === cycleIndex) ? "08:00" : "09:00";
@@ -218,7 +213,7 @@
                 }
             });
 
-            // Ручні перевизначення
+            // Ручні переопределення (Override)
             Object.keys(dayOverrides).forEach(empId => {
                 if (dayOverrides[empId]) result[empId] = dayOverrides[empId];
             });
@@ -252,7 +247,7 @@
             });
         }
 
-        // Пріоритет сортування в ячейці: Черговий 08:00 ЗАВЖДИ Перший
+        // СОРТУВАННЯ: Черговий 08:00 ЗАВЖДИ першим, далі 13:00 / 09:00, ВИХ в кінці
         function sortEmployeesByDuty(shifts) {
             const priority = { "08:00": 1, "13:00": 2, "09:00": 3, "ВИХ": 4, "ЛІКАР": 5, "—": 6 };
             return [...appState.employees].sort((a, b) => {
@@ -300,6 +295,7 @@
                 dayCell.className = `p-2 min-h-[110px] sm:min-h-[120px] transition hover:bg-slate-50 cursor-pointer flex flex-col justify-between ${isToday ? 'bg-indigo-50/40 font-semibold border-2 border-indigo-400' : ''}`;
                 dayCell.onclick = () => openDayModal(dateKey, dayObj);
 
+                // ВЕЛИКИЙ ТА ЧІТКИЙ ШРИФТ ДАТИ
                 const dateHeader = document.createElement("div");
                 dateHeader.className = "flex justify-between items-center mb-2 border-b border-slate-100 pb-1";
                 dateHeader.innerHTML = `
