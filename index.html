@@ -83,7 +83,10 @@
 
             <div>
                 <div class="flex justify-between items-center mb-3">
-                    <h4 class="text-sm font-semibold text-slate-700">Працівники та їхні кольори</h4>
+                    <div>
+                        <h4 class="text-sm font-semibold text-slate-700">Працівники та їхні кольори</h4>
+                        <p class="text-[11px] text-slate-500">Позначте радіобаттоном, хто заступає **першим на 08:00** у дату відліку.</p>
+                    </div>
                     <button id="add-employee-btn" class="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                         <i data-lucide="plus" class="w-3.5 h-3.5"></i> Додати
                     </button>
@@ -151,6 +154,7 @@
     <script>
         const DEFAULT_STATE = {
             anchorDate: "2026-07-30",
+            firstEmpId: "emp_1",
             employees: [
                 { id: "emp_1", name: "Руслан", color: "#3b82f6", sickStart: null },
                 { id: "emp_2", name: "О. Плаван", color: "#10b981", sickStart: null },
@@ -160,6 +164,12 @@
         };
 
         let appState = JSON.parse(localStorage.getItem("work_schedule_data")) || DEFAULT_STATE;
+        
+        // Гарантуємо наявність поля firstEmpId
+        if (!appState.firstEmpId && appState.employees.length > 0) {
+            appState.firstEmpId = appState.employees[0].id;
+        }
+
         let currentDate = new Date(2026, 6, 30);
         let selectedDateStr = null;
 
@@ -179,12 +189,16 @@
             const anchor = new Date(appState.anchorDate);
             const diffDays = Math.floor((dateObj - anchor) / (1000 * 60 * 60 * 24));
 
+            // Індекс співробітника, який є першим у циклі
+            let startIdx = activeEmps.findIndex(e => e.id === appState.firstEmpId);
+            if (startIdx === -1) startIdx = 0;
+
             let result = {};
 
             if (dayOfWeek === 0) {
-                // НЕДІЛЯ: Розрахунок позитивного остачі від ділення для гарантії ротації
+                // НЕДІЛЯ: Розрахунок з урахуванням обраного першого працівника
                 const weekIndex = Math.floor(diffDays / 7);
-                const w = ((weekIndex % n) + n) % n;
+                const w = (((weekIndex + startIdx) % n) + n) % n;
                 
                 const empIndex8 = w;
                 const empIndex13 = (w + 1) % n;
@@ -199,8 +213,8 @@
                     }
                 });
             } else {
-                // БУДНІ ТА СУБОТА: 1 черговий на 08:00, решта на 09:00
-                const cycleIndex = ((diffDays % n) + n) % n;
+                // БУДНІ ТА СУБОТА: Зміщення циклу від початкового працівника
+                const cycleIndex = (((diffDays + startIdx) % n) + n) % n;
                 activeEmps.forEach((emp, index) => {
                     result[emp.id] = (index === cycleIndex) ? "08:00" : "09:00";
                 });
@@ -236,18 +250,20 @@
             const container = document.getElementById("employees-legend");
             container.innerHTML = "";
             appState.employees.forEach(emp => {
+                const isStartEmp = emp.id === appState.firstEmpId;
                 const badge = document.createElement("div");
                 badge.className = "flex items-center space-x-1.5 bg-white border border-slate-200 px-2.5 py-1 rounded-full text-xs font-medium shadow-2xs";
                 badge.innerHTML = `
                     <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${emp.color}"></span>
                     <span class="text-slate-700">${emp.name}</span>
+                    ${isStartEmp ? '<span title="Стартовий черговий циклу" class="text-[10px] bg-indigo-50 text-indigo-600 px-1 rounded font-bold">1-й</span>' : ''}
                     ${emp.sickStart ? '<span class="text-[10px] text-rose-500 font-bold ml-1">(Лікарняний)</span>' : ''}
                 `;
                 container.appendChild(badge);
             });
         }
 
-        // СОРТУВАННЯ: Черговий 08:00 ЗАВЖДИ першим, далі 13:00 / 09:00, ВИХ в кінці
+        // СОРТУВАННЯ: Черговий 08:00 ЗАВЖДИ першим
         function sortEmployeesByDuty(shifts) {
             const priority = { "08:00": 1, "13:00": 2, "09:00": 3, "ВИХ": 4, "ЛІКАР": 5, "—": 6 };
             return [...appState.employees].sort((a, b) => {
@@ -295,7 +311,6 @@
                 dayCell.className = `p-2 min-h-[110px] sm:min-h-[120px] transition hover:bg-slate-50 cursor-pointer flex flex-col justify-between ${isToday ? 'bg-indigo-50/40 font-semibold border-2 border-indigo-400' : ''}`;
                 dayCell.onclick = () => openDayModal(dateKey, dayObj);
 
-                // ВЕЛИКИЙ ТА ЧІТКИЙ ШРИФТ ДАТИ
                 const dateHeader = document.createElement("div");
                 dateHeader.className = "flex justify-between items-center mb-2 border-b border-slate-100 pb-1";
                 dateHeader.innerHTML = `
@@ -438,10 +453,15 @@
         function renderSettingsEmployees() {
             const container = document.getElementById("settings-employees-list");
             container.innerHTML = "";
+            
             appState.employees.forEach((emp, idx) => {
+                const isChecked = (emp.id === appState.firstEmpId || (idx === 0 && !appState.firstEmpId));
                 const row = document.createElement("div");
                 row.className = "flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200";
                 row.innerHTML = `
+                    <label class="flex items-center cursor-pointer p-1 hover:bg-slate-200/50 rounded" title="Зробити першим у черзі (08:00)">
+                        <input type="radio" name="first-duty-emp" value="${emp.id}" ${isChecked ? 'checked' : ''} class="first-emp-radio w-4 h-4 text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                    </label>
                     <input type="color" value="${emp.color}" data-idx="${idx}" class="emp-color-input w-7 h-7 rounded border-none cursor-pointer">
                     <input type="text" value="${emp.name}" data-idx="${idx}" class="emp-name-input flex-1 text-xs border border-slate-300 rounded p-1.5 focus:ring-1 focus:ring-indigo-500 outline-none">
                     <button data-idx="${idx}" class="toggle-sick-btn text-xs px-2 py-1 rounded ${emp.sickStart ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-700'}">
@@ -467,7 +487,11 @@
             });
             document.querySelectorAll(".delete-emp-btn").forEach(btn => {
                 btn.onclick = (e) => {
+                    const deletedEmp = appState.employees[e.currentTarget.dataset.idx];
                     appState.employees.splice(e.currentTarget.dataset.idx, 1);
+                    if (appState.firstEmpId === deletedEmp.id && appState.employees.length > 0) {
+                        appState.firstEmpId = appState.employees[0].id;
+                    }
                     renderSettingsEmployees();
                 };
             });
@@ -476,12 +500,14 @@
 
         document.getElementById("add-employee-btn").onclick = () => {
             const colors = ["#8b5cf6", "#ec4899", "#06b6d4", "#f97316", "#84cc16"];
+            const newId = `emp_${Date.now()}`;
             appState.employees.push({
-                id: `emp_${Date.now()}`,
+                id: newId,
                 name: "Новий працівник",
                 color: colors[appState.employees.length % colors.length],
                 sickStart: null
             });
+            if (!appState.firstEmpId) appState.firstEmpId = newId;
             renderSettingsEmployees();
         };
 
@@ -498,6 +524,13 @@
 
         document.getElementById("save-settings-btn").onclick = () => {
             appState.anchorDate = document.getElementById("anchor-date-input").value;
+            
+            // Зберігаємо вибраний радіобаттон
+            const selectedRadio = document.querySelector(".first-emp-radio:checked");
+            if (selectedRadio) {
+                appState.firstEmpId = selectedRadio.value;
+            }
+
             saveState();
             renderHeaderLegend();
             renderCalendar();
