@@ -119,7 +119,7 @@
         // =========================================================================
         // ВСТАВЬТЕ ВАШИ ДАННЫЕ ИЗ FIREBASE СЮДА
         // =========================================================================
-        const firebaseConfig = {
+       const firebaseConfig = {
   apiKey: "AIzaSyDLpD5H-W2PNvoYpAYv4lpZpxiWF8QrlB0",
   authDomain: "calendar-62d3d.firebaseapp.com",
   databaseURL: "https://calendar-62d3d-default-rtdb.europe-west1.firebasedatabase.app",
@@ -206,10 +206,27 @@
             const allEmps = appState.employees;
             if (allEmps.length === 0) return;
 
-            let dutyPointer = allEmps.findIndex(e => e.id === appState.firstEmpId);
+            // Позиції "на 8" та "Вих Нд" мають визначатись за місцем працівника у
+            // ВІДФІЛЬТРОВАНИХ списках (без "тільки неділя", лікарняних, відпусток, ще-не-початку роботи)
+            // саме на дату якоря — а не за "сирим" індексом у повному списку працівників,
+            // інакше позиція "з'їжджає", якщо перед обраним працівником у списку є хтось
+            // із позначкою "тільки неділя" чи відсутній на цю дату.
+            const anchorDateStr = formatDateKey(curr);
+            let anchorRegular = [], anchorSundayOnly = [];
+            allEmps.forEach(emp => {
+                let isSick = emp.sickStart && anchorDateStr >= emp.sickStart;
+                let isVac = emp.vacation && anchorDateStr >= emp.vacation.start && anchorDateStr <= emp.vacation.end;
+                let isBeforeStart = emp.startDate && anchorDateStr < emp.startDate;
+                if (isSick || isVac || isBeforeStart) return;
+                if (emp.sundayOnly) anchorSundayOnly.push(emp);
+                else anchorRegular.push(emp);
+            });
+
+            let dutyPointer = anchorRegular.findIndex(e => e.id === appState.firstEmpId);
             if (dutyPointer === -1) dutyPointer = 0;
 
-            let sundayOffPointer = allEmps.findIndex(e => e.id === appState.firstSundayOffEmpId);
+            let anchorSundayPool = anchorRegular.concat(anchorSundayOnly);
+            let sundayOffPointer = anchorSundayPool.findIndex(e => e.id === appState.firstSundayOffEmpId);
             if (sundayOffPointer === -1) sundayOffPointer = 0;
 
             while (curr <= limitDate) {
