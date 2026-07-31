@@ -119,7 +119,7 @@
         // =========================================================================
         // ВСТАВЬТЕ ВАШИ ДАННЫЕ ИЗ FIREBASE СЮДА
         // =========================================================================
-       const firebaseConfig = {
+        const firebaseConfig = {
   apiKey: "AIzaSyDLpD5H-W2PNvoYpAYv4lpZpxiWF8QrlB0",
   authDomain: "calendar-62d3d.firebaseapp.com",
   databaseURL: "https://calendar-62d3d-default-rtdb.europe-west1.firebasedatabase.app",
@@ -284,6 +284,9 @@
                             sundayOffPointer++;
                         }
                     }
+                    // Субота та неділя рахуються в загальній черзі на 8:00 нарівні з буднями,
+                    // незалежно від того, яку саме годину людина отримала в цей день.
+                    if (regularList.length > 0) dutyPointer++;
                 } else {
                     // ПН - СБ
                     sundayOnlyList.forEach(emp => dayResult[emp.id] = "—");
