@@ -206,29 +206,52 @@ const firebaseConfig = {
             const allEmps = appState.employees;
             if (allEmps.length === 0) return;
 
+            const anchorDateStr = formatDateKey(curr);
+
+            // Допоміжна: відфільтровані списки (без лікарняних/відпусток/ще-не-початку роботи)
+            // станом на конкретну дату.
+            function filteredListsAt(dStr) {
+                let regular = [], sundayOnly = [];
+                allEmps.forEach(emp => {
+                    let isSick = emp.sickStart && dStr >= emp.sickStart;
+                    let isVac = emp.vacation && dStr >= emp.vacation.start && dStr <= emp.vacation.end;
+                    let isBeforeStart = emp.startDate && dStr < emp.startDate;
+                    if (isSick || isVac || isBeforeStart) return;
+                    if (emp.sundayOnly) sundayOnly.push(emp);
+                    else regular.push(emp);
+                });
+                return { regular, sundayOnly };
+            }
+
             // Позиції "на 8" та "Вих Нд" мають визначатись за місцем працівника у
-            // ВІДФІЛЬТРОВАНИХ списках (без "тільки неділя", лікарняних, відпусток, ще-не-початку роботи)
-            // саме на дату якоря — а не за "сирим" індексом у повному списку працівників,
+            // ВІДФІЛЬТРОВАНИХ списках — а не за "сирим" індексом у повному списку працівників,
             // інакше позиція "з'їжджає", якщо перед обраним працівником у списку є хтось
             // із позначкою "тільки неділя" чи відсутній на цю дату.
-            const anchorDateStr = formatDateKey(curr);
-            let anchorRegular = [], anchorSundayOnly = [];
-            allEmps.forEach(emp => {
-                let isSick = emp.sickStart && anchorDateStr >= emp.sickStart;
-                let isVac = emp.vacation && anchorDateStr >= emp.vacation.start && anchorDateStr <= emp.vacation.end;
-                let isBeforeStart = emp.startDate && anchorDateStr < emp.startDate;
-                if (isSick || isVac || isBeforeStart) return;
-                if (emp.sundayOnly) anchorSundayOnly.push(emp);
-                else anchorRegular.push(emp);
-            });
+            // Якщо ОСОБИСТА дата "Початок роботи" обраного працівника ПІЗНІШЕ за дату якоря
+            // (він ще не існує для розрахунку на саму дату якоря), використовуємо саме його
+            // дату початку роботи, щоб коректно знайти його позицію — інакше findIndex поверне
+            // -1 і код тихо підставить на "на 8"/"Вих Нд" когось іншого.
+            const firstEmpObj = allEmps.find(e => e.id === appState.firstEmpId);
+            let dutyRefDateStr = anchorDateStr;
+            if (firstEmpObj && firstEmpObj.startDate && firstEmpObj.startDate > anchorDateStr) {
+                dutyRefDateStr = firstEmpObj.startDate;
+            }
+            const anchorRegular = filteredListsAt(dutyRefDateStr).regular;
 
             let dutyPointer = anchorRegular.findIndex(e => e.id === appState.firstEmpId);
             if (dutyPointer === -1) dutyPointer = 0;
 
+            const firstSundayEmpObj = allEmps.find(e => e.id === appState.firstSundayOffEmpId);
+            let sundayRefDateStr = anchorDateStr;
+            if (firstSundayEmpObj && firstSundayEmpObj.startDate && firstSundayEmpObj.startDate > anchorDateStr) {
+                sundayRefDateStr = firstSundayEmpObj.startDate;
+            }
+            const sundayRefLists = filteredListsAt(sundayRefDateStr);
+
             // "Вих Нд" завжди означає найближчу неділю ВПЕРЕД по календарю від дати якоря
             // (працівник не може мати вихідний "у минулому") — тобто це перша неділя,
             // яку зустріне цикл, рухаючись від дати якоря вперед.
-            let anchorSundayPool = anchorRegular.concat(anchorSundayOnly);
+            let anchorSundayPool = sundayRefLists.regular.concat(sundayRefLists.sundayOnly);
             let sundayOffPointer = anchorSundayPool.findIndex(e => e.id === appState.firstSundayOffEmpId);
             if (sundayOffPointer === -1) sundayOffPointer = 0;
             // Лічильник sundayOffPointer вказує на початок "робочої пари" (8:00+13:00).
