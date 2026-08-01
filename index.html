@@ -119,7 +119,7 @@
         // =========================================================================
         // ВСТАВЬТЕ ВАШИ ДАННЫЕ ИЗ FIREBASE СЮДА
         // =========================================================================
-       const firebaseConfig = {
+        const firebaseConfig = {
   apiKey: "AIzaSyDLpD5H-W2PNvoYpAYv4lpZpxiWF8QrlB0",
   authDomain: "calendar-62d3d.firebaseapp.com",
   databaseURL: "https://calendar-62d3d-default-rtdb.europe-west1.firebasedatabase.app",
@@ -228,6 +228,12 @@
             let anchorSundayPool = anchorRegular.concat(anchorSundayOnly);
             let sundayOffPointer = anchorSundayPool.findIndex(e => e.id === appState.firstSundayOffEmpId);
             if (sundayOffPointer === -1) sundayOffPointer = 0;
+            // Лічильник sundayOffPointer вказує на початок "робочої пари" (8:00+13:00).
+            // Щоб обрана людина була саме ВИХІДНОЮ (а не в робочій парі) на найближчу неділю,
+            // зсуваємо старт пари на 1 позицію вперед — тоді обраний потрапляє одразу перед парою.
+            if (anchorSundayPool.length >= 3) {
+                sundayOffPointer = (sundayOffPointer + 1) % anchorSundayPool.length;
+            }
 
             while (curr <= limitDate) {
                 const dStr = formatDateKey(curr);
@@ -272,24 +278,27 @@
                     if (sundayPool.length > 0) {
                         if (sundayPool.length >= 3) {
                             if (returner) {
+                                // Людина, що повернулась з відпустки, одразу заступає на 8:00
                                 let rIdx = sundayPool.findIndex(e => e.id === returner.id);
-                                if(rIdx !== -1) sundayOffPointer = (rIdx - 1 + sundayPool.length) % sundayPool.length;
+                                if(rIdx !== -1) sundayOffPointer = rIdx;
                             }
-                            let offIdx = sundayOffPointer % sundayPool.length;
-                            let emp8Idx = (offIdx + 1) % sundayPool.length;
-                            let emp13Idx = (offIdx + 2) % sundayPool.length;
-                            
-                            dayResult[sundayPool[offIdx].id] = "ВИХ";
+                            // "Робоча пара" (8:00 та 13:00) рухається на +2 позиції щотижня,
+                            // а не на +1 — інакше при пулі з 4+ людей вікна "хто працює"
+                            // перекриваються і одна й та сама людина потрапляє у вихідні
+                            // два тижні поспіль замість чесної ротації.
+                            let emp8Idx = sundayOffPointer % sundayPool.length;
+                            let emp13Idx = (sundayOffPointer + 1) % sundayPool.length;
+
                             dayResult[sundayPool[emp8Idx].id] = "08:00";
                             dayResult[sundayPool[emp13Idx].id] = "13:00";
                             
                             // Іншим ставимо вихідний
                             sundayPool.forEach((emp, idx) => {
-                                if(idx !== offIdx && idx !== emp8Idx && idx !== emp13Idx) {
+                                if(idx !== emp8Idx && idx !== emp13Idx) {
                                     dayResult[emp.id] = "ВИХ";
                                 }
                             });
-                            sundayOffPointer++;
+                            sundayOffPointer += 2;
                         } else if (sundayPool.length === 2) {
                             let emp8Idx = sundayOffPointer % sundayPool.length;
                             let emp13Idx = (sundayOffPointer + 1) % sundayPool.length;
