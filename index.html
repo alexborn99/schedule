@@ -119,7 +119,7 @@
         // =========================================================================
         // ВСТАВЬТЕ ВАШИ ДАННЫЕ ИЗ FIREBASE СЮДА
         // =========================================================================
-        const firebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyDLpD5H-W2PNvoYpAYv4lpZpxiWF8QrlB0",
   authDomain: "calendar-62d3d.firebaseapp.com",
   databaseURL: "https://calendar-62d3d-default-rtdb.europe-west1.firebasedatabase.app",
@@ -225,6 +225,9 @@
             let dutyPointer = anchorRegular.findIndex(e => e.id === appState.firstEmpId);
             if (dutyPointer === -1) dutyPointer = 0;
 
+            // "Вих Нд" завжди означає найближчу неділю ВПЕРЕД по календарю від дати якоря
+            // (працівник не може мати вихідний "у минулому") — тобто це перша неділя,
+            // яку зустріне цикл, рухаючись від дати якоря вперед.
             let anchorSundayPool = anchorRegular.concat(anchorSundayOnly);
             let sundayOffPointer = anchorSundayPool.findIndex(e => e.id === appState.firstSundayOffEmpId);
             if (sundayOffPointer === -1) sundayOffPointer = 0;
